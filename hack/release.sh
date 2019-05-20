@@ -2,7 +2,7 @@
 set -xeou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT="$GOPATH/src/github.com/kubedb/mysql"
+REPO_ROOT="$GOPATH/src/github.com/kubedb/percona"
 
 export APPSCODE_ENV=prod
 
@@ -10,8 +10,8 @@ pushd $REPO_ROOT
 
 rm -rf dist
 
-./hack/docker/my-operator/make.sh
-./hack/docker/my-operator/make.sh release
+./hack/docker/percona-operator/make.sh
+./hack/docker/percona-operator/make.sh release
 
 rm dist/.tag
 

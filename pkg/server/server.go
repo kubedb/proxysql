@@ -10,8 +10,8 @@ import (
 	"github.com/kubedb/apimachinery/pkg/admission/namespace"
 	"github.com/kubedb/apimachinery/pkg/admission/snapshot"
 	"github.com/kubedb/apimachinery/pkg/eventer"
-	myAdmsn "github.com/kubedb/mysql/pkg/admission"
-	"github.com/kubedb/mysql/pkg/controller"
+	myAdmsn "github.com/kubedb/percona/pkg/admission"
+	"github.com/kubedb/percona/pkg/controller"
 	admission "k8s.io/api/admission/v1beta1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -211,7 +211,7 @@ func (c completedConfig) New() (*MySQLServer, error) {
 						if e2 == nil {
 							eventer.CreateEventWithLog(
 								kubernetes.NewForConfigOrDie(c.OperatorConfig.ClientConfig),
-								"my-operator",
+								"percona-operator",
 								w,
 								core.EventTypeWarning,
 								eventer.EventReasonAdmissionWebhookNotActivated,

@@ -74,7 +74,7 @@ func (c *Controller) createDatabaseSecret(mysql *api.MySQL) (*core.SecretVolumeS
 }
 
 // This is done to fix 0.8.0 -> 0.9.0 upgrade due to
-// https://github.com/kubedb/mysql/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
+// https://github.com/kubedb/percona/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
 func (c *Controller) upgradeDatabaseSecret(mysql *api.MySQL) error {
 	meta := metav1.ObjectMeta{
 		Name:      mysql.Spec.DatabaseSecret.SecretName,

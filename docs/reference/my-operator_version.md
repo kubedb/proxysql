@@ -1,4 +1,4 @@
-## my-operator version
+## percona-operator version
 
 Prints binary version number.
 
@@ -7,7 +7,7 @@ Prints binary version number.
 Prints binary version number.
 
 ```
-my-operator version [flags]
+percona-operator version [flags]
 ```
 
 ### Options
@@ -35,5 +35,5 @@ my-operator version [flags]
 
 ### SEE ALSO
 
-* [my-operator](my-operator.md)	 - 
+* [percona-operator](percona-operator.md)	 - 
 

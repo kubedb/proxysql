@@ -1,4 +1,4 @@
-module github.com/kubedb/mysql
+module github.com/kubedb/percona
 
 go 1.12
 
@@ -27,7 +27,9 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/sys v0.0.0-20190508220229-2d0786266e9c // indirect
+	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
+	golang.org/x/net v0.0.0-20190514140710-3ec191127204 // indirect
+	golang.org/x/sys v0.0.0-20190516110030-61b9204099cb // indirect
 	k8s.io/api v0.0.0-20190503110853-61630f889b3c
 	k8s.io/apiextensions-apiserver v0.0.0-20190508184259-7784d62bc471
 	k8s.io/apimachinery v0.0.0-20190508063446-a3da69d3723c

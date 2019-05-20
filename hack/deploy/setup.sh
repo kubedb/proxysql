@@ -9,7 +9,7 @@ export MINIKUBE_RUN=0
 export SELF_HOSTED=1
 export ARGS="" # Forward arguments to installer script
 
-REPO_ROOT="$GOPATH/src/github.com/kubedb/mysql"
+REPO_ROOT="$GOPATH/src/github.com/kubedb/percona"
 CLI_ROOT="$GOPATH/src/github.com/kubedb/cli"
 
 pushd $REPO_ROOT
@@ -124,8 +124,8 @@ env | sort | grep -e KUBEDB* -e APPSCODE*
 echo ""
 
 if [ "$SELF_HOSTED" -eq 1 ]; then
-  echo "${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=my-operator $ARGS"
-  ${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=my-operator ${ARGS}
+  echo "${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=percona-operator $ARGS"
+  ${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=percona-operator ${ARGS}
 fi
 
 if [ "$MINIKUBE" -eq 1 ]; then
@@ -138,7 +138,7 @@ if [ "$MINIKUBE" -eq 1 ]; then
 
   if [ "$MINIKUBE_RUN" -eq 1 ]; then
     $REPO_ROOT/hack/make.py
-    my-operator run --v=4 \
+    percona-operator run --v=4 \
       --secure-port=8443 \
       --enable-status-subresource=true \
       --enable-mutating-webhook=true \

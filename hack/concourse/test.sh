@@ -4,7 +4,7 @@ set -eoux pipefail
 
 ORG_NAME=kubedb
 REPO_NAME=mysql
-OPERATOR_NAME=my-operator
+OPERATOR_NAME=percona-operator
 APP_LABEL=kubedb #required for `kubectl describe deploy -n kube-system -l app=$APP_LABEL`
 
 export APPSCODE_ENV=dev

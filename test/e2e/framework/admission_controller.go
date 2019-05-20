@@ -11,7 +11,7 @@ import (
 	"github.com/appscode/go/log"
 	shell "github.com/codeskyblue/go-sh"
 	"github.com/kubedb/apimachinery/apis"
-	"github.com/kubedb/mysql/pkg/cmds/server"
+	"github.com/kubedb/percona/pkg/cmds/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"

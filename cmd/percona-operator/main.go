@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/kubedb/mysql/pkg/cmds"
+	"github.com/kubedb/percona/pkg/cmds"
 	"kmodules.xyz/client-go/logs"
 )
 

@@ -5,8 +5,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/kubedb/mysql/pkg/controller"
-	"github.com/kubedb/mysql/pkg/server"
+	"github.com/kubedb/percona/pkg/controller"
+	"github.com/kubedb/percona/pkg/server"
 	"github.com/spf13/pflag"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -31,7 +31,7 @@ func NewMySQLServerOptions(out, errOut io.Writer) *MySQLServerOptions {
 		RecommendedOptions: genericoptions.NewRecommendedOptions(
 			defaultEtcdPathPrefix,
 			server.Codecs.LegacyCodec(admissionv1beta1.SchemeGroupVersion),
-			genericoptions.NewProcessInfo("my-operator", meta.Namespace()),
+			genericoptions.NewProcessInfo("percona-operator", meta.Namespace()),
 		),
 		ExtraOptions: NewExtraOptions(),
 		StdOut:       out,

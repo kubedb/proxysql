@@ -1,4 +1,4 @@
-## my-operator
+## percona-operator
 
 
 
@@ -12,7 +12,7 @@
       --alsologtostderr                  log to standard error as well as files
       --bypass-validating-webhook-xray   if true, bypasses validating webhook xray checks
       --enable-analytics                 Send analytical events to Google Analytics (default true)
-  -h, --help                             help for my-operator
+  -h, --help                             help for percona-operator
       --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
       --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
       --log_dir string                   If non-empty, write log files in this directory
@@ -25,6 +25,6 @@
 
 ### SEE ALSO
 
-* [my-operator run](my-operator_run.md)	 - Launch MySQL server
-* [my-operator version](my-operator_version.md)	 - Prints binary version number.
+* [percona-operator run](percona-operator_run.md)	 - Launch MySQL server
+* [percona-operator version](percona-operator_version.md)	 - Prints binary version number.
 

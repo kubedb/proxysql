@@ -9,8 +9,8 @@ import (
 	catalog "github.com/kubedb/apimachinery/apis/catalog/v1alpha1"
 	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
 	"github.com/kubedb/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
-	"github.com/kubedb/mysql/test/e2e/framework"
-	"github.com/kubedb/mysql/test/e2e/matcher"
+	"github.com/kubedb/percona/test/e2e/framework"
+	"github.com/kubedb/percona/test/e2e/matcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	core "k8s.io/api/core/v1"
@@ -382,7 +382,7 @@ var _ = Describe("MySQL", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+										Repository: "https://github.com/kubedb/percona-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -455,7 +455,7 @@ var _ = Describe("MySQL", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+										Repository: "https://github.com/kubedb/percona-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -472,7 +472,7 @@ var _ = Describe("MySQL", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+										Repository: "https://github.com/kubedb/percona-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -544,7 +544,7 @@ var _ = Describe("MySQL", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+										Repository: "https://github.com/kubedb/percona-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -803,7 +803,7 @@ var _ = Describe("MySQL", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+									Repository: "https://github.com/kubedb/percona-init-scripts.git",
 									Directory:  ".",
 								},
 							},
@@ -1011,7 +1011,7 @@ var _ = Describe("MySQL", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+									Repository: "https://github.com/kubedb/percona-init-scripts.git",
 									Directory:  ".",
 								},
 							},
@@ -1150,7 +1150,7 @@ var _ = Describe("MySQL", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://github.com/kubedb/mysql-init-scripts.git",
+									Repository: "https://github.com/kubedb/percona-init-scripts.git",
 									Directory:  ".",
 								},
 							},

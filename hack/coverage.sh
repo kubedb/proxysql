@@ -2,7 +2,7 @@
 set -eou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT="$GOPATH/src/github.com/kubedb/mysql"
+REPO_ROOT="$GOPATH/src/github.com/kubedb/percona"
 
 pushd $REPO_ROOT
 

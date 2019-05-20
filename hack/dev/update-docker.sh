@@ -2,7 +2,7 @@
 set -eou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT=${GOPATH}/src/github.com/kubedb/mysql
+REPO_ROOT=${GOPATH}/src/github.com/kubedb/percona
 
 export DB_UPDATE=1
 export TOOLS_UPDATE=1
@@ -102,6 +102,6 @@ fi
 
 if [ "$OPERATOR_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing Operator images" || true
-  ${REPO_ROOT}/hack/docker/my-operator/make.sh build
-  ${REPO_ROOT}/hack/docker/my-operator/make.sh push
+  ${REPO_ROOT}/hack/docker/percona-operator/make.sh build
+  ${REPO_ROOT}/hack/docker/percona-operator/make.sh push
 fi

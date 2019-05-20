@@ -18,14 +18,14 @@ resources:
   type: git
   tags: [cncf]
   source:
-    uri: https://github.com/kubedb/mysql
+    uri: https://github.com/kubedb/percona
     branch: master
 
 - name: repo-status
   type: github-status
   tags: [cncf]
   source:
-    repository: kubedb/mysql
+    repository: kubedb/percona
     access_token: ((access_token))
     context: "concourse-ci"
 

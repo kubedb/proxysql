@@ -1,4 +1,4 @@
-## my-operator run
+## percona-operator run
 
 Launch MySQL server
 
@@ -7,7 +7,7 @@ Launch MySQL server
 Launch MySQL server
 
 ```
-my-operator run [flags]
+percona-operator run [flags]
 ```
 
 ### Options
@@ -101,5 +101,5 @@ my-operator run [flags]
 
 ### SEE ALSO
 
-* [my-operator](my-operator.md)	 - 
+* [percona-operator](percona-operator.md)	 - 
 

@@ -8,38 +8,38 @@ GOPATH=$(go env GOPATH)
 SRC=$GOPATH/src
 BIN=$GOPATH/bin
 ROOT=$GOPATH
-REPO_ROOT=$GOPATH/src/github.com/kubedb/mysql
+REPO_ROOT=$GOPATH/src/github.com/kubedb/percona
 
 source "$REPO_ROOT/hack/libbuild/common/kubedb_image.sh"
 
 APPSCODE_ENV=${APPSCODE_ENV:-dev}
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-kubedb}
-IMG=my-operator
+IMG=percona-operator
 
-DIST=$GOPATH/src/github.com/kubedb/mysql/dist
+DIST=$GOPATH/src/github.com/kubedb/percona/dist
 mkdir -p $DIST
 if [ -f "$DIST/.tag" ]; then
   export $(cat $DIST/.tag | xargs)
 fi
 
 clean() {
-  pushd $REPO_ROOT/hack/docker/my-operator
-  rm -f my-operator Dockerfile
+  pushd $REPO_ROOT/hack/docker/percona-operator
+  rm -f percona-operator Dockerfile
   popd
 }
 
 build_binary() {
   pushd $REPO_ROOT
   ./hack/builddeps.sh
-  ./hack/make.py build my-operator
+  ./hack/make.py build percona-operator
   detect_tag $DIST/.tag
   popd
 }
 
 build_docker() {
-  pushd $REPO_ROOT/hack/docker/my-operator
-  cp $DIST/my-operator/my-operator-alpine-amd64 my-operator
-  chmod 755 my-operator
+  pushd $REPO_ROOT/hack/docker/percona-operator
+  cp $DIST/percona-operator/percona-operator-alpine-amd64 percona-operator
+  chmod 755 percona-operator
 
   cat >Dockerfile <<EOL
 FROM alpine:3.8
@@ -47,15 +47,15 @@ FROM alpine:3.8
 RUN set -x \
   && apk add --update --no-cache ca-certificates
 
-COPY my-operator /usr/bin/my-operator
+COPY percona-operator /usr/bin/percona-operator
 
 USER nobody:nobody
-ENTRYPOINT ["my-operator"]
+ENTRYPOINT ["percona-operator"]
 EOL
   local cmd="docker build --pull -t $DOCKER_REGISTRY/$IMG:$TAG ."
   echo $cmd; $cmd
 
-  rm my-operator Dockerfile
+  rm percona-operator Dockerfile
   popd
 }
 
