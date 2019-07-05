@@ -42,7 +42,7 @@ func (c *Controller) UpsertDatabaseAnnotation(meta metav1.ObjectMeta, annotation
 	}
 
 	_, _, err = util.PatchMySQL(c.ExtClient.KubedbV1alpha1(), mysql, func(in *api.MySQL) *api.MySQL {
-		in.Annotations = core_util.UpsertMap(mysql.Annotations, annotation)
+		in.Annotations = core_util.UpsertMap(in.Annotations, annotation)
 		return in
 	})
 	return err
