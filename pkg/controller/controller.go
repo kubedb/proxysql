@@ -4,17 +4,6 @@ import (
 	"github.com/appscode/go/encoding/json/types"
 	"github.com/appscode/go/log"
 	pcm "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
-	"github.com/kubedb/apimachinery/apis"
-	authorization "github.com/kubedb/apimachinery/apis/authorization/v1alpha1"
-	catalog "github.com/kubedb/apimachinery/apis/catalog/v1alpha1"
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
-	cs "github.com/kubedb/apimachinery/client/clientset/versioned"
-	"github.com/kubedb/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
-	api_listers "github.com/kubedb/apimachinery/client/listers/kubedb/v1alpha1"
-	amc "github.com/kubedb/apimachinery/pkg/controller"
-	drmnc "github.com/kubedb/apimachinery/pkg/controller/dormantdatabase"
-	snapc "github.com/kubedb/apimachinery/pkg/controller/snapshot"
-	"github.com/kubedb/apimachinery/pkg/eventer"
 	core "k8s.io/api/core/v1"
 	crd_api "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	crd_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -31,6 +20,18 @@ import (
 	"kmodules.xyz/client-go/tools/queue"
 	appcat "kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	"kubedb.dev/apimachinery/apis"
+	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
+	api_listers "kubedb.dev/apimachinery/client/listers/kubedb/v1alpha1"
+	amc "kubedb.dev/apimachinery/pkg/controller"
+	drmnc "kubedb.dev/apimachinery/pkg/controller/dormantdatabase"
+	"kubedb.dev/apimachinery/pkg/controller/restoresession"
+	snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
+	"kubedb.dev/apimachinery/pkg/eventer"
+	scs "stash.appscode.dev/stash/client/clientset/versioned"
 )
 
 type Controller struct {
@@ -46,10 +47,10 @@ type Controller struct {
 	// labelselector for event-handler of Snapshot, Dormant and Job
 	selector labels.Selector
 
-	// MySQL
-	myQueue    *queue.Worker
-	myInformer cache.SharedIndexInformer
-	myLister   api_listers.MySQLLister
+	// PerconaXtraDB
+	pxQueue    *queue.Worker
+	pxInformer cache.SharedIndexInformer
+	pxLister   api_listers.PerconaXtraDBLister
 }
 
 var _ amc.Snapshotter = &Controller{}
@@ -60,6 +61,7 @@ func New(
 	client kubernetes.Interface,
 	apiExtKubeClient crd_cs.ApiextensionsV1beta1Interface,
 	extClient cs.Interface,
+	stashClient scs.Interface,
 	dynamicClient dynamic.Interface,
 	appCatalogClient appcat_cs.AppcatalogV1alpha1Interface,
 	promClient pcm.MonitoringV1Interface,
@@ -72,6 +74,7 @@ func New(
 			ClientConfig:     clientConfig,
 			Client:           client,
 			ExtClient:        extClient,
+			StashClient:      stashClient,
 			ApiExtKubeClient: apiExtKubeClient,
 			DynamicClient:    dynamicClient,
 			AppCatalogClient: appCatalogClient,
@@ -81,7 +84,7 @@ func New(
 		cronController: cronController,
 		recorder:       recorder,
 		selector: labels.SelectorFromSet(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindMySQL,
+			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 		}),
 	}
 }
@@ -90,22 +93,20 @@ func New(
 func (c *Controller) EnsureCustomResourceDefinitions() error {
 	log.Infoln("Ensuring CustomResourceDefinition...")
 	crds := []*crd_api.CustomResourceDefinition{
-		api.MySQL{}.CustomResourceDefinition(),
-		catalog.MySQLVersion{}.CustomResourceDefinition(),
+		api.PerconaXtraDB{}.CustomResourceDefinition(),
+		catalog.PerconaXtraDBVersion{}.CustomResourceDefinition(),
 		api.DormantDatabase{}.CustomResourceDefinition(),
 		api.Snapshot{}.CustomResourceDefinition(),
-		authorization.MySQLRole{}.CustomResourceDefinition(),
-		authorization.DatabaseAccessRequest{}.CustomResourceDefinition(),
 		appcat.AppBinding{}.CustomResourceDefinition(),
 	}
 	return apiext_util.RegisterCRDs(c.ApiExtKubeClient, crds)
 }
 
-// Init initializes mysql, DormantDB amd Snapshot watcher
+// Init initializes perconaxtradb, DormantDB amd RestoreSession watcher
 func (c *Controller) Init() error {
 	c.initWatcher()
 	c.DrmnQueue = drmnc.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
-	c.SnapQueue, c.JobQueue = snapc.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
+	c.RSQueue = restoresession.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
 
 	return nil
 }
@@ -116,10 +117,8 @@ func (c *Controller) RunControllers(stopCh <-chan struct{}) {
 	c.cronController.StartCron()
 
 	// Watch x  TPR objects
-	c.myQueue.Run(stopCh)
+	c.pxQueue.Run(stopCh)
 	c.DrmnQueue.Run(stopCh)
-	c.SnapQueue.Run(stopCh)
-	c.JobQueue.Run(stopCh)
 }
 
 // Blocks caller. Intended to be called as a Go routine.
@@ -147,6 +146,24 @@ func (c *Controller) StartAndRunControllers(stopCh <-chan struct{}) {
 	c.KubeInformerFactory.Start(stopCh)
 	c.KubedbInformerFactory.Start(stopCh)
 
+	go func() {
+		// start StashInformerFactory only if stash crds (ie, "restoreSession") are available.
+		if err := c.BlockOnStashOperator(stopCh); err != nil {
+			log.Errorln("error while waiting for restoreSession.", err)
+			return
+		}
+
+		// start informer factory
+		c.StashInformerFactory.Start(stopCh)
+		for t, v := range c.StashInformerFactory.WaitForCacheSync(stopCh) {
+			if !v {
+				log.Fatalf("%v timed out waiting for caches to sync", t)
+				return
+			}
+		}
+		c.RSQueue.Run(stopCh)
+	}()
+
 	// Wait for all involved caches to be synced, before processing items from the queue is started
 	for t, v := range c.KubeInformerFactory.WaitForCacheSync(stopCh) {
 		if !v {
@@ -167,30 +184,30 @@ func (c *Controller) StartAndRunControllers(stopCh <-chan struct{}) {
 	log.Infoln("Stopping KubeDB controller")
 }
 
-func (c *Controller) pushFailureEvent(mysql *api.MySQL, reason string) {
+func (c *Controller) pushFailureEvent(px *api.PerconaXtraDB, reason string) {
 	c.recorder.Eventf(
-		mysql,
+		px,
 		core.EventTypeWarning,
 		eventer.EventReasonFailedToStart,
-		`Fail to be ready MySQL: "%v". Reason: %v`,
-		mysql.Name,
+		`Fail to be ready PerconaXtraDB: "%v". Reason: %v`,
+		px.Name,
 		reason,
 	)
 
-	my, err := util.UpdateMySQLStatus(c.ExtClient.KubedbV1alpha1(), mysql, func(in *api.MySQLStatus) *api.MySQLStatus {
+	perconaXtraDB, err := util.UpdatePerconaXtraDBStatus(c.ExtClient.KubedbV1alpha1(), px, func(in *api.PerconaXtraDBStatus) *api.PerconaXtraDBStatus {
 		in.Phase = api.DatabasePhaseFailed
 		in.Reason = reason
-		in.ObservedGeneration = types.NewIntHash(mysql.Generation, meta_util.GenerationHash(mysql))
+		in.ObservedGeneration = types.NewIntHash(px.Generation, meta_util.GenerationHash(px))
 		return in
 	}, apis.EnableStatusSubresource)
 
 	if err != nil {
 		c.recorder.Eventf(
-			mysql,
+			px,
 			core.EventTypeWarning,
 			eventer.EventReasonFailedToUpdate,
 			err.Error(),
 		)
 	}
-	mysql.Status = my.Status
+	px.Status = perconaXtraDB.Status
 }

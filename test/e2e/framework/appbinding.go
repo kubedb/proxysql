@@ -27,21 +27,21 @@ func (f *Framework) EventuallyAppBinding(meta metav1.ObjectMeta) GomegaAsyncAsse
 }
 
 func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta) error {
-	mysql, err := f.GetMySQL(meta)
+	px, err := f.GetPerconaXtraDB(meta)
 	Expect(err).NotTo(HaveOccurred())
 
-	appBinding, err := f.appCatalogClient.AppBindings(mysql.Namespace).Get(mysql.Name, metav1.GetOptions{})
+	appBinding, err := f.appCatalogClient.AppBindings(px.Namespace).Get(px.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	if appBinding.Spec.ClientConfig.Service == nil ||
-		appBinding.Spec.ClientConfig.Service.Name != mysql.ServiceName() ||
+		appBinding.Spec.ClientConfig.Service.Name != px.ServiceName() ||
 		appBinding.Spec.ClientConfig.Service.Port != 3306 {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	if appBinding.Spec.Secret == nil ||
-		appBinding.Spec.Secret.Name != mysql.Spec.DatabaseSecret.SecretName {
+		appBinding.Spec.Secret.Name != px.Spec.DatabaseSecret.SecretName {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	return nil

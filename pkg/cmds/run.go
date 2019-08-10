@@ -4,24 +4,24 @@ import (
 	"io"
 
 	"github.com/appscode/go/log"
-	"github.com/kubedb/percona/pkg/cmds/server"
 	"github.com/spf13/cobra"
 	"kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/cli"
+	"kubedb.dev/percona-xtradb/pkg/cmds/server"
 )
 
 func NewCmdRun(version string, out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
-	o := server.NewMySQLServerOptions(out, errOut)
+	o := server.NewPerconaXtraDBServerOptions(out, errOut)
 
 	cmd := &cobra.Command{
 		Use:               "run",
-		Short:             "Launch MySQL server",
+		Short:             "Launch PerconaXtraDB server",
 		DisableAutoGenTag: true,
 		PreRun: func(c *cobra.Command, args []string) {
 			cli.SendPeriodicAnalytics(c, version)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Infoln("Starting mysql-server...")
+			log.Infoln("Starting percona-xtradb-server...")
 
 			if err := o.Complete(); err != nil {
 				return err

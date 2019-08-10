@@ -1,7 +1,6 @@
 package controller
 
 import (
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
 	core "k8s.io/api/core/v1"
 	policy_v1beta1 "k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1beta1"
@@ -11,9 +10,10 @@ import (
 	"k8s.io/client-go/tools/reference"
 	core_util "kmodules.xyz/client-go/core/v1"
 	rbac_util "kmodules.xyz/client-go/rbac/v1beta1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
-func (c *Controller) createServiceAccount(db *api.MySQL, saName string) error {
+func (c *Controller) createServiceAccount(db *api.PerconaXtraDB, saName string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -34,7 +34,7 @@ func (c *Controller) createServiceAccount(db *api.MySQL, saName string) error {
 	return err
 }
 
-func (c *Controller) ensureRole(db *api.MySQL, name string, pspName string) error {
+func (c *Controller) ensureRole(db *api.PerconaXtraDB, name string, pspName string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -66,7 +66,7 @@ func (c *Controller) ensureRole(db *api.MySQL, name string, pspName string) erro
 	return err
 }
 
-func (c *Controller) createRoleBinding(db *api.MySQL, name string) error {
+func (c *Controller) createRoleBinding(db *api.PerconaXtraDB, name string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -99,54 +99,36 @@ func (c *Controller) createRoleBinding(db *api.MySQL, name string) error {
 	return err
 }
 
-func (c *Controller) getPolicyNames(db *api.MySQL) (string, string, error) {
-	dbVersion, err := c.ExtClient.CatalogV1alpha1().MySQLVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
+func (c *Controller) getPolicyNames(db *api.PerconaXtraDB) (string, error) {
+	dbVersion, err := c.ExtClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	dbPolicyName := dbVersion.Spec.PodSecurityPolicies.DatabasePolicyName
-	snapshotPolicyName := dbVersion.Spec.PodSecurityPolicies.SnapshotterPolicyName
 
-	return dbPolicyName, snapshotPolicyName, nil
+	return dbPolicyName, nil
 }
 
-func (c *Controller) ensureRBACStuff(mysql *api.MySQL) error {
-	dbPolicyName, snapshotPolicyName, err := c.getPolicyNames(mysql)
+func (c *Controller) ensureRBACStuff(px *api.PerconaXtraDB) error {
+	dbPolicyName, err := c.getPolicyNames(px)
 	if err != nil {
 		return err
 	}
 
 	// Create New ServiceAccount
-	if err := c.createServiceAccount(mysql, mysql.OffshootName()); err != nil {
+	if err := c.createServiceAccount(px, px.OffshootName()); err != nil {
 		if !kerr.IsAlreadyExists(err) {
 			return err
 		}
 	}
 
 	// Create New Role
-	if err := c.ensureRole(mysql, mysql.OffshootName(), dbPolicyName); err != nil {
+	if err := c.ensureRole(px, px.OffshootName(), dbPolicyName); err != nil {
 		return err
 	}
 
 	// Create New RoleBinding
-	if err := c.createRoleBinding(mysql, mysql.OffshootName()); err != nil {
-		return err
-	}
-
-	// Create New SNapshot ServiceAccount
-	if err := c.createServiceAccount(mysql, mysql.SnapshotSAName()); err != nil {
-		if !kerr.IsAlreadyExists(err) {
-			return err
-		}
-	}
-
-	// Create New Role for Snapshot
-	if err := c.ensureRole(mysql, mysql.SnapshotSAName(), snapshotPolicyName); err != nil {
-		return err
-	}
-
-	// Create New RoleBinding for Snapshot
-	if err := c.createRoleBinding(mysql, mysql.SnapshotSAName()); err != nil {
+	if err := c.createRoleBinding(px, px.OffshootName()); err != nil {
 		return err
 	}
 

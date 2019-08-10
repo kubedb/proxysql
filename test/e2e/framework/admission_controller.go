@@ -10,8 +10,6 @@ import (
 
 	"github.com/appscode/go/log"
 	shell "github.com/codeskyblue/go-sh"
-	"github.com/kubedb/apimachinery/apis"
-	"github.com/kubedb/percona/pkg/cmds/server"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
@@ -23,6 +21,8 @@ import (
 	admsn_kutil "kmodules.xyz/client-go/admissionregistration/v1beta1"
 	discovery_util "kmodules.xyz/client-go/discovery"
 	meta_util "kmodules.xyz/client-go/meta"
+	"kubedb.dev/apimachinery/apis"
+	"kubedb.dev/percona-xtradb/pkg/cmds/server"
 )
 
 func (f *Framework) isApiSvcReady(apiSvcName string) error {
@@ -91,7 +91,7 @@ func (f *Framework) RunOperatorAndServer(config *restclient.Config, kubeconfigPa
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("Starting Server and Operator")
-	serverOpt := server.NewMySQLServerOptions(os.Stdout, os.Stderr)
+	serverOpt := server.NewPerconaXtraDBServerOptions(os.Stdout, os.Stderr)
 
 	serverOpt.RecommendedOptions.CoreAPI.CoreAPIKubeconfigPath = kubeconfigPath
 	serverOpt.RecommendedOptions.SecureServing.BindPort = 8443

@@ -5,10 +5,6 @@ import (
 	"testing"
 
 	"github.com/appscode/go/types"
-	catalog "github.com/kubedb/apimachinery/apis/catalog/v1alpha1"
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
-	extFake "github.com/kubedb/apimachinery/client/clientset/versioned/fake"
-	"github.com/kubedb/apimachinery/client/clientset/versioned/scheme"
 	admission "k8s.io/api/admission/v1beta1"
 	apps "k8s.io/api/apps/v1"
 	authenticationV1 "k8s.io/api/authentication/v1"
@@ -22,6 +18,10 @@ import (
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
 	"kmodules.xyz/client-go/meta"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
+	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	extFake "kubedb.dev/apimachinery/client/clientset/versioned/fake"
+	"kubedb.dev/apimachinery/client/clientset/versioned/scheme"
 )
 
 func init() {
@@ -31,37 +31,37 @@ func init() {
 var requestKind = metaV1.GroupVersionKind{
 	Group:   api.SchemeGroupVersion.Group,
 	Version: api.SchemeGroupVersion.Version,
-	Kind:    api.ResourceKindMySQL,
+	Kind:    api.ResourceKindPerconaXtraDB,
 }
 
-func TestMySQLValidator_Admit(t *testing.T) {
+func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.testName, func(t *testing.T) {
-			validator := MySQLValidator{}
+			validator := PerconaXtraDBValidator{}
 
 			validator.initialized = true
 			validator.extClient = extFake.NewSimpleClientset(
-				&catalog.MySQLVersion{
+				&catalog.PerconaXtraDBVersion{
 					ObjectMeta: metaV1.ObjectMeta{
-						Name: "8.0",
+						Name: "5.7",
 					},
-					Spec: catalog.MySQLVersionSpec{
-						Version: "8.0.0",
+					Spec: catalog.PerconaXtraDBVersionSpec{
+						Version: "5.7",
 					},
 				},
-				&catalog.MySQLVersion{
+				&catalog.PerconaXtraDBVersion{
 					ObjectMeta: metaV1.ObjectMeta{
 						Name: "5.6",
 					},
-					Spec: catalog.MySQLVersionSpec{
+					Spec: catalog.PerconaXtraDBVersionSpec{
 						Version: "5.6",
 					},
 				},
-				&catalog.MySQLVersion{
+				&catalog.PerconaXtraDBVersion{
 					ObjectMeta: metaV1.ObjectMeta{
 						Name: "5.7.25",
 					},
-					Spec: catalog.MySQLVersionSpec{
+					Spec: catalog.PerconaXtraDBVersionSpec{
 						Version: "5.7.25",
 					},
 				},
@@ -100,7 +100,7 @@ func TestMySQLValidator_Admit(t *testing.T) {
 			req.OldObject.Raw = oldObjJS
 
 			if c.heatUp {
-				if _, err := validator.extClient.KubedbV1alpha1().MySQLs(c.namespace).Create(&c.object); err != nil && !kerr.IsAlreadyExists(err) {
+				if _, err := validator.extClient.KubedbV1alpha1().PerconaXtraDBs(c.namespace).Create(&c.object); err != nil && !kerr.IsAlreadyExists(err) {
 					t.Errorf(err.Error())
 				}
 			}
@@ -132,48 +132,58 @@ var cases = []struct {
 	objectName string
 	namespace  string
 	operation  admission.Operation
-	object     api.MySQL
-	oldObject  api.MySQL
+	object     api.PerconaXtraDB
+	oldObject  api.PerconaXtraDB
 	heatUp     bool
 	result     bool
 }{
-	{"Create Valid MySQL",
+	{"Create Valid PerconaXtraDB",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		sampleMySQL(),
-		api.MySQL{},
+		samplePerconaXtraDB(),
+		api.PerconaXtraDB{},
 		false,
 		true,
 	},
-	{"Create Invalid MySQL",
+	{"Create PerconaXtraDB without single node replicas",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		getAwkwardMySQL(),
-		api.MySQL{},
+		perconaxtradbWithoutSingleReplica(),
+		api.PerconaXtraDB{},
 		false,
 		false,
 	},
-	{"Edit MySQL Spec.DatabaseSecret with Existing Secret",
+	{"Create Invalid perconaxtradb",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		getAwkwardPerconaXtraDB(),
+		api.PerconaXtraDB{},
+		false,
+		false,
+	},
+	{"Edit PerconaXtraDB Spec.DatabaseSecret with Existing Secret",
 		requestKind,
 		"foo",
 		"default",
 		admission.Update,
-		editExistingSecret(sampleMySQL()),
-		sampleMySQL(),
+		editExistingSecret(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		true,
 	},
-	{"Edit MySQL Spec.DatabaseSecret with non Existing Secret",
+	{"Edit PerconaXtraDB Spec.DatabaseSecret with non Existing Secret",
 		requestKind,
 		"foo",
 		"default",
 		admission.Update,
-		editNonExistingSecret(sampleMySQL()),
-		sampleMySQL(),
+		editNonExistingSecret(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		true,
 	},
@@ -182,8 +192,8 @@ var cases = []struct {
 		"foo",
 		"default",
 		admission.Update,
-		editStatus(sampleMySQL()),
-		sampleMySQL(),
+		editStatus(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		true,
 	},
@@ -192,8 +202,8 @@ var cases = []struct {
 		"foo",
 		"default",
 		admission.Update,
-		editSpecMonitor(sampleMySQL()),
-		sampleMySQL(),
+		editSpecMonitor(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		true,
 	},
@@ -202,8 +212,8 @@ var cases = []struct {
 		"foo",
 		"default",
 		admission.Update,
-		editSpecInvalidMonitor(sampleMySQL()),
-		sampleMySQL(),
+		editSpecInvalidMonitor(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		false,
 	},
@@ -212,170 +222,120 @@ var cases = []struct {
 		"foo",
 		"default",
 		admission.Update,
-		pauseDatabase(sampleMySQL()),
-		sampleMySQL(),
+		pauseDatabase(samplePerconaXtraDB()),
+		samplePerconaXtraDB(),
 		false,
 		true,
 	},
-	{"Delete MySQL when Spec.TerminationPolicy=DoNotTerminate",
+	{"Delete PerconaXtraDB when Spec.TerminationPolicy=DoNotTerminate",
 		requestKind,
 		"foo",
 		"default",
 		admission.Delete,
-		sampleMySQL(),
-		api.MySQL{},
+		samplePerconaXtraDB(),
+		api.PerconaXtraDB{},
 		true,
 		false,
 	},
-	{"Delete MySQL when Spec.TerminationPolicy=Pause",
+	{"Delete PerconaXtraDB when Spec.TerminationPolicy=Pause",
 		requestKind,
 		"foo",
 		"default",
 		admission.Delete,
-		pauseDatabase(sampleMySQL()),
-		api.MySQL{},
+		pauseDatabase(samplePerconaXtraDB()),
+		api.PerconaXtraDB{},
 		true,
 		true,
 	},
-	{"Delete Non Existing MySQL",
+	{"Delete Non Existing PerconaXtraDB",
 		requestKind,
 		"foo",
 		"default",
 		admission.Delete,
-		api.MySQL{},
-		api.MySQL{},
+		api.PerconaXtraDB{},
+		api.PerconaXtraDB{},
 		false,
 		true,
 	},
 
-	// For MySQL Group Replication
-	{"Create valid group",
+	// XtraDB Cluster
+	{"Create a valid PerconaXtraDB Cluster",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		validGroup(sampleMySQL()),
-		api.MySQL{},
+		sampleXtraDBCluster(),
+		api.PerconaXtraDB{},
 		false,
 		true,
 	},
-	{"Create group with '.spec.topology.mode' not set",
+	{"Create PerconaXtraDB Cluster with insufficient node replicas",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		groupWithClusterModeNotSet(),
-		api.MySQL{},
+		insufficientNodeReplicas(),
+		api.PerconaXtraDB{},
 		false,
 		false,
 	},
-	{"Create group with invalid '.spec.topology.mode'",
+	{"Create PerconaXtraDB Cluster with empty cluster name",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		groupWithInvalidClusterMode(),
-		api.MySQL{},
-		false,
-		false,
-	},
-	{"Create group with single replica",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		groupWithSingleReplica(),
-		api.MySQL{},
-		false,
-		false,
-	},
-	{"Create group with replicas more than max group size",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		groupWithOverReplicas(),
-		api.MySQL{},
-		false,
-		false,
-	},
-	{"Create group with unsupported MySQL server version",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		groupWithUnsupportedServerVersion(),
-		api.MySQL{},
+		emptyClusterName(),
+		api.PerconaXtraDB{},
 		false,
 		true,
 	},
-	{"Create group with Non-tri formatted MySQL server version",
+	{"Create PerconaXtraDB Cluster with larger cluster name than recommended",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		groupWithNonTriFormattedServerVersion(),
-		api.MySQL{},
-		false,
-		true,
-	},
-	{"Create group with empty group name",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		groupWithEmptyGroupName(),
-		api.MySQL{},
+		largerClusterNameThanRecommended(),
+		api.PerconaXtraDB{},
 		false,
 		false,
 	},
-	{"Create group with invalid group name",
+	{"Create PerconaXtraDB Cluster without single proxysql replicas",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		groupWithInvalidGroupName(),
-		api.MySQL{},
+		withoutSingleProxysqlReplicas(),
+		api.PerconaXtraDB{},
 		false,
 		false,
 	},
-	{"Create group with baseServerID 0",
+	{"Create PerconaXtraDB Cluster with 0 proxysql replicas",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		groupWithBaseServerIDZero(),
-		api.MySQL{},
-		false,
-		false,
-	},
-	{"Create group with baseServerID exceeded max limit",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		groupWithBaseServerIDExceededMaxLimit(),
-		api.MySQL{},
+		withZeroProxysqlReplicas(),
+		api.PerconaXtraDB{},
 		false,
 		false,
 	},
 }
 
-func sampleMySQL() api.MySQL {
-	return api.MySQL{
+func samplePerconaXtraDB() api.PerconaXtraDB {
+	return api.PerconaXtraDB{
 		TypeMeta: metaV1.TypeMeta{
-			Kind:       api.ResourceKindMySQL,
+			Kind:       api.ResourceKindPerconaXtraDB,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 			Labels: map[string]string{
-				api.LabelDatabaseKind: api.ResourceKindMySQL,
+				api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 			},
 		},
-		Spec: api.MySQLSpec{
-			Version:     "8.0",
+		Spec: api.PerconaXtraDBSpec{
+			Version:     "5.7",
 			Replicas:    types.Int32P(1),
 			StorageType: api.StorageTypeDurable,
 			Storage: &core.PersistentVolumeClaimSpec{
@@ -390,7 +350,7 @@ func sampleMySQL() api.MySQL {
 				ScriptSource: &api.ScriptSourceSpec{
 					VolumeSource: core.VolumeSource{
 						GitRepo: &core.GitRepoVolumeSource{
-							Repository: "https://github.com/kubedb/percona-init-scripts.git",
+							Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
 							Directory:  ".",
 						},
 					},
@@ -404,34 +364,40 @@ func sampleMySQL() api.MySQL {
 	}
 }
 
-func getAwkwardMySQL() api.MySQL {
-	mysql := sampleMySQL()
-	mysql.Spec.Version = "3.0"
-	return mysql
+func getAwkwardPerconaXtraDB() api.PerconaXtraDB {
+	px := samplePerconaXtraDB()
+	px.Spec.Version = "3.0"
+	return px
 }
 
-func editExistingSecret(old api.MySQL) api.MySQL {
+func perconaxtradbWithoutSingleReplica() api.PerconaXtraDB {
+	px := samplePerconaXtraDB()
+	px.Spec.Replicas = types.Int32P(3)
+	return px
+}
+
+func editExistingSecret(old api.PerconaXtraDB) api.PerconaXtraDB {
 	old.Spec.DatabaseSecret = &core.SecretVolumeSource{
 		SecretName: "foo-auth",
 	}
 	return old
 }
 
-func editNonExistingSecret(old api.MySQL) api.MySQL {
+func editNonExistingSecret(old api.PerconaXtraDB) api.PerconaXtraDB {
 	old.Spec.DatabaseSecret = &core.SecretVolumeSource{
 		SecretName: "foo-auth-fused",
 	}
 	return old
 }
 
-func editStatus(old api.MySQL) api.MySQL {
-	old.Status = api.MySQLStatus{
+func editStatus(old api.PerconaXtraDB) api.PerconaXtraDB {
+	old.Status = api.PerconaXtraDBStatus{
 		Phase: api.DatabasePhaseCreating,
 	}
 	return old
 }
 
-func editSpecMonitor(old api.MySQL) api.MySQL {
+func editSpecMonitor(old api.PerconaXtraDB) api.PerconaXtraDB {
 	old.Spec.Monitor = &mona.AgentSpec{
 		Agent: mona.AgentPrometheusBuiltin,
 		Prometheus: &mona.PrometheusSpec{
@@ -442,100 +408,62 @@ func editSpecMonitor(old api.MySQL) api.MySQL {
 }
 
 // should be failed because more fields required for COreOS Monitoring
-func editSpecInvalidMonitor(old api.MySQL) api.MySQL {
+func editSpecInvalidMonitor(old api.PerconaXtraDB) api.PerconaXtraDB {
 	old.Spec.Monitor = &mona.AgentSpec{
 		Agent: mona.AgentCoreOSPrometheus,
 	}
 	return old
 }
 
-func pauseDatabase(old api.MySQL) api.MySQL {
+func pauseDatabase(old api.PerconaXtraDB) api.PerconaXtraDB {
 	old.Spec.TerminationPolicy = api.TerminationPolicyPause
 	return old
 }
 
-func validGroup(old api.MySQL) api.MySQL {
-	old.Spec.Version = api.MySQLGRRecommendedVersion
-	old.Spec.Replicas = types.Int32P(api.MySQLDefaultGroupSize)
-	clusterMode := api.MySQLClusterModeGroup
-	old.Spec.Topology = &api.MySQLClusterTopology{
-		Mode: &clusterMode,
-		Group: &api.MySQLGroupSpec{
-			Name:         "dc002fc3-c412-4d18-b1d4-66c1fbfbbc9b",
-			BaseServerID: types.UIntP(api.MySQLDefaultBaseServerID),
+func sampleXtraDBCluster() api.PerconaXtraDB {
+	perconaxtradb := samplePerconaXtraDB()
+	perconaxtradb.Spec.Replicas = types.Int32P(3)
+	perconaxtradb.Spec.PXC = &api.PXCSpec{
+		ClusterName: "foo-xtradb-cluster",
+		Proxysql: api.ProxysqlSpec{
+			Replicas: types.Int32P(1),
 		},
 	}
 
-	return old
+	return perconaxtradb
 }
 
-func groupWithClusterModeNotSet() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Topology.Mode = nil
+func insufficientNodeReplicas() api.PerconaXtraDB {
+	perconaxtradb := sampleXtraDBCluster()
+	perconaxtradb.Spec.Replicas = types.Int32P(1)
 
-	return old
+	return perconaxtradb
 }
 
-func groupWithInvalidClusterMode() api.MySQL {
-	old := validGroup(sampleMySQL())
-	gr := api.MySQLClusterMode("groupReplication")
-	old.Spec.Topology.Mode = &gr
+func emptyClusterName() api.PerconaXtraDB {
+	perconaxtradb := sampleXtraDBCluster()
+	perconaxtradb.Spec.PXC.ClusterName = ""
 
-	return old
+	return perconaxtradb
 }
 
-func groupWithSingleReplica() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Replicas = types.Int32P(1)
+func largerClusterNameThanRecommended() api.PerconaXtraDB {
+	perconaxtradb := sampleXtraDBCluster()
+	perconaxtradb.Name = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
 
-	return old
+	return perconaxtradb
 }
 
-func groupWithOverReplicas() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Replicas = types.Int32P(api.MySQLMaxGroupMembers + 1)
+func withoutSingleProxysqlReplicas() api.PerconaXtraDB {
+	perconaxtradb := sampleXtraDBCluster()
+	perconaxtradb.Spec.PXC.Proxysql.Replicas = types.Int32P(3)
 
-	return old
+	return perconaxtradb
 }
 
-func groupWithUnsupportedServerVersion() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Version = "8.0"
+func withZeroProxysqlReplicas() api.PerconaXtraDB {
+	perconaxtradb := sampleXtraDBCluster()
+	perconaxtradb.Spec.PXC.Proxysql.Replicas = types.Int32P(0)
 
-	return old
-}
-
-func groupWithNonTriFormattedServerVersion() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Version = "5.6"
-
-	return old
-}
-
-func groupWithEmptyGroupName() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Topology.Group.Name = ""
-
-	return old
-}
-
-func groupWithInvalidGroupName() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Topology.Group.Name = "a-a-a-a-a"
-
-	return old
-}
-
-func groupWithBaseServerIDZero() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Topology.Group.BaseServerID = types.UIntP(0)
-
-	return old
-}
-
-func groupWithBaseServerIDExceededMaxLimit() api.MySQL {
-	old := validGroup(sampleMySQL())
-	old.Spec.Topology.Group.BaseServerID = types.UIntP(api.MySQLMaxBaseServerID + 1)
-
-	return old
+	return perconaxtradb
 }

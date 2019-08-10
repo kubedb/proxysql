@@ -5,11 +5,6 @@ import (
 	"time"
 
 	prom "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
-	"github.com/kubedb/apimachinery/apis"
-	cs "github.com/kubedb/apimachinery/client/clientset/versioned"
-	kubedbinformers "github.com/kubedb/apimachinery/client/informers/externalversions"
-	snapc "github.com/kubedb/apimachinery/pkg/controller/snapshot"
-	"github.com/kubedb/percona/pkg/controller"
 	"github.com/spf13/pflag"
 	core "k8s.io/api/core/v1"
 	kext_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -19,6 +14,13 @@ import (
 	"kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/cli"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	"kubedb.dev/apimachinery/apis"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	kubedbinformers "kubedb.dev/apimachinery/client/informers/externalversions"
+	snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
+	"kubedb.dev/percona-xtradb/pkg/controller"
+	scs "stash.appscode.dev/stash/client/clientset/versioned"
+	stashInformers "stash.appscode.dev/stash/client/informers/externalversions"
 )
 
 type ExtraOptions struct {
@@ -75,7 +77,7 @@ func (s *ExtraOptions) AddGoFlags(fs *flag.FlagSet) {
 }
 
 func (s *ExtraOptions) AddFlags(fs *pflag.FlagSet) {
-	pfs := flag.NewFlagSet("mysql-server", flag.ExitOnError)
+	pfs := flag.NewFlagSet("percona-xtradb-server", flag.ExitOnError)
 	s.AddGoFlags(pfs)
 	fs.AddGoFlagSet(pfs)
 }
@@ -118,8 +120,12 @@ func (s *ExtraOptions) ApplyTo(cfg *controller.OperatorConfig) error {
 	if cfg.AppCatalogClient, err = appcat_cs.NewForConfig(cfg.ClientConfig); err != nil {
 		return err
 	}
+	if cfg.StashClient, err = scs.NewForConfig(cfg.ClientConfig); err != nil {
+		return err
+	}
 	cfg.KubeInformerFactory = informers.NewSharedInformerFactory(cfg.KubeClient, cfg.ResyncPeriod)
 	cfg.KubedbInformerFactory = kubedbinformers.NewSharedInformerFactory(cfg.DBClient, cfg.ResyncPeriod)
+	cfg.StashInformerFactory = stashInformers.NewSharedInformerFactory(cfg.StashClient, cfg.ResyncPeriod)
 
 	cfg.CronController = snapc.NewCronController(cfg.KubeClient, cfg.DBClient, cfg.DynamicClient)
 

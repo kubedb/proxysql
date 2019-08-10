@@ -5,13 +5,6 @@ import (
 	"os"
 	"strings"
 
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
-	"github.com/kubedb/apimachinery/pkg/admission/dormantdatabase"
-	"github.com/kubedb/apimachinery/pkg/admission/namespace"
-	"github.com/kubedb/apimachinery/pkg/admission/snapshot"
-	"github.com/kubedb/apimachinery/pkg/eventer"
-	myAdmsn "github.com/kubedb/percona/pkg/admission"
-	"github.com/kubedb/percona/pkg/controller"
 	admission "k8s.io/api/admission/v1beta1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +19,12 @@ import (
 	dynamic_util "kmodules.xyz/client-go/dynamic"
 	hooks "kmodules.xyz/webhook-runtime/admission/v1beta1"
 	admissionreview "kmodules.xyz/webhook-runtime/registry/admissionreview/v1beta1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	"kubedb.dev/apimachinery/pkg/admission/dormantdatabase"
+	"kubedb.dev/apimachinery/pkg/admission/namespace"
+	"kubedb.dev/apimachinery/pkg/eventer"
+	pxAdmsn "kubedb.dev/percona-xtradb/pkg/admission"
+	"kubedb.dev/percona-xtradb/pkg/controller"
 )
 
 const (
@@ -55,7 +54,7 @@ func init() {
 	)
 }
 
-type MySQLServerConfig struct {
+type PerconaXtraDBServerConfig struct {
 	GenericConfig  *genericapiserver.RecommendedConfig
 	ExtraConfig    ExtraConfig
 	OperatorConfig *controller.OperatorConfig
@@ -65,13 +64,13 @@ type ExtraConfig struct {
 	AdmissionHooks []hooks.AdmissionHook
 }
 
-// MySQLServer contains state for a Kubernetes cluster master/api server.
-type MySQLServer struct {
+// PerconaXtraDBServer contains state for a Kubernetes cluster master/api server.
+type PerconaXtraDBServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 	Operator         *controller.Controller
 }
 
-func (op *MySQLServer) Run(stopCh <-chan struct{}) error {
+func (op *PerconaXtraDBServer) Run(stopCh <-chan struct{}) error {
 	go op.Operator.Run(stopCh)
 	return op.GenericAPIServer.PrepareRun().Run(stopCh)
 }
@@ -88,7 +87,7 @@ type CompletedConfig struct {
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
-func (c *MySQLServerConfig) Complete() CompletedConfig {
+func (c *PerconaXtraDBServerConfig) Complete() CompletedConfig {
 	completedCfg := completedConfig{
 		c.GenericConfig.Complete(),
 		c.ExtraConfig,
@@ -103,8 +102,8 @@ func (c *MySQLServerConfig) Complete() CompletedConfig {
 	return CompletedConfig{&completedCfg}
 }
 
-// New returns a new instance of MySQLServer from the given config.
-func (c completedConfig) New() (*MySQLServer, error) {
+// New returns a new instance of PerconaXtraDBServer from the given config.
+func (c completedConfig) New() (*PerconaXtraDBServer, error) {
 	genericServer, err := c.GenericConfig.New("kubedb-server", genericapiserver.NewEmptyDelegate()) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
@@ -112,16 +111,16 @@ func (c completedConfig) New() (*MySQLServer, error) {
 
 	if c.OperatorConfig.EnableMutatingWebhook {
 		c.ExtraConfig.AdmissionHooks = []hooks.AdmissionHook{
-			&myAdmsn.MySQLMutator{},
+			&pxAdmsn.PerconaXtraDBMutator{},
 		}
 	}
 	if c.OperatorConfig.EnableValidatingWebhook {
 		c.ExtraConfig.AdmissionHooks = append(c.ExtraConfig.AdmissionHooks,
-			&myAdmsn.MySQLValidator{},
-			&snapshot.SnapshotValidator{},
+			&pxAdmsn.PerconaXtraDBValidator{},
+			//&snapshot.SnapshotValidator{},
 			&dormantdatabase.DormantDatabaseValidator{},
 			&namespace.NamespaceValidator{
-				Resources: []string{api.ResourcePluralMySQL},
+				Resources: []string{api.ResourcePluralPerconaXtraDB},
 			},
 		)
 	}
@@ -131,7 +130,7 @@ func (c completedConfig) New() (*MySQLServer, error) {
 		return nil, err
 	}
 
-	s := &MySQLServer{
+	s := &PerconaXtraDBServer{
 		GenericAPIServer: genericServer,
 		Operator:         ctrl,
 	}
@@ -189,16 +188,16 @@ func (c completedConfig) New() (*MySQLServer, error) {
 		s.GenericAPIServer.AddPostStartHookOrDie("validating-webhook-xray",
 			func(context genericapiserver.PostStartHookContext) error {
 				go func() {
-					xray := reg_util.NewCreateValidatingWebhookXray(c.OperatorConfig.ClientConfig, apiserviceName, &api.MySQL{
+					xray := reg_util.NewCreateValidatingWebhookXray(c.OperatorConfig.ClientConfig, apiserviceName, &api.PerconaXtraDB{
 						TypeMeta: metav1.TypeMeta{
 							APIVersion: api.SchemeGroupVersion.String(),
-							Kind:       api.ResourceKindMySQL,
+							Kind:       api.ResourceKindPerconaXtraDB,
 						},
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-mysql-for-webhook-xray",
+							Name:      "test-percona-xtradb-for-webhook-xray",
 							Namespace: "default",
 						},
-						Spec: api.MySQLSpec{
+						Spec: api.PerconaXtraDBSpec{
 							StorageType: api.StorageType("Invalid"),
 						},
 					}, context.StopCh)
@@ -211,7 +210,7 @@ func (c completedConfig) New() (*MySQLServer, error) {
 						if e2 == nil {
 							eventer.CreateEventWithLog(
 								kubernetes.NewForConfigOrDie(c.OperatorConfig.ClientConfig),
-								"percona-operator",
+								"percona-xtradb-operator",
 								w,
 								core.EventTypeWarning,
 								eventer.EventReasonAdmissionWebhookNotActivated,

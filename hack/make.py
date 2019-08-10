@@ -35,10 +35,10 @@ import subprocess
 import sys
 from os.path import expandvars, join, dirname
 
-libbuild.REPO_ROOT = expandvars('$GOPATH') + '/src/github.com/kubedb/percona'
+libbuild.REPO_ROOT = expandvars('$GOPATH') + '/src/kubedb.dev/percona-xtradb'
 BUILD_METADATA = libbuild.metadata(libbuild.REPO_ROOT)
 libbuild.BIN_MATRIX = {
-    'percona-operator': {
+    'percona-xtradb-operator': {
         'type': 'go',
         'go_version': True,
         'use_cgo': False,

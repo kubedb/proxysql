@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/appscode/go/types"
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	core_util "kmodules.xyz/client-go/core/v1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
 const (
@@ -59,7 +59,7 @@ func (f *Framework) CleanWorkloadLeftOvers() {
 	// delete statefulset
 	if err := f.kubeClient.AppsV1().StatefulSets(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindMySQL,
+			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 		}).String(),
 	}); err != nil && !kerr.IsNotFound(err) {
 		fmt.Printf("error in deletion of Statefulset. Error: %v", err)
@@ -68,7 +68,7 @@ func (f *Framework) CleanWorkloadLeftOvers() {
 	// delete pvc
 	if err := f.kubeClient.CoreV1().PersistentVolumeClaims(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindMySQL,
+			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 		}).String(),
 	}); err != nil && !kerr.IsNotFound(err) {
 		fmt.Printf("error in deletion of PVC. Error: %v", err)
@@ -77,20 +77,31 @@ func (f *Framework) CleanWorkloadLeftOvers() {
 	// delete secret
 	if err := f.kubeClient.CoreV1().Secrets(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindMySQL,
+			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 		}).String(),
 	}); err != nil && !kerr.IsNotFound(err) {
 		fmt.Printf("error in deletion of Secret. Error: %v", err)
 	}
 }
 
-func (f *Framework) WaitUntilPodRunningBySelector(mysql *api.MySQL) error {
-	return core_util.WaitUntilPodRunningBySelector(
-		f.kubeClient,
-		mysql.Namespace,
-		&metav1.LabelSelector{
-			MatchLabels: mysql.OffshootSelectors(),
-		},
-		int(types.Int32(mysql.Spec.Replicas)),
-	)
+func (f *Framework) WaitUntilPodRunningBySelector(px *api.PerconaXtraDB, proxysql bool) error {
+	if !proxysql {
+		return core_util.WaitUntilPodRunningBySelector(
+			f.kubeClient,
+			px.Namespace,
+			&metav1.LabelSelector{
+				MatchLabels: px.ClusterSelectors(),
+			},
+			int(types.Int32(px.Spec.Replicas)),
+		)
+	} else {
+		return core_util.WaitUntilPodRunningBySelector(
+			f.kubeClient,
+			px.Namespace,
+			&metav1.LabelSelector{
+				MatchLabels: px.ProxysqlSelectors(),
+			},
+			int(types.Int32(px.Spec.PXC.Proxysql.Replicas)),
+		)
+	}
 }

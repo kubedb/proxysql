@@ -9,64 +9,46 @@ export MINIKUBE_RUN=0
 export SELF_HOSTED=1
 export ARGS="" # Forward arguments to installer script
 
-REPO_ROOT="$GOPATH/src/github.com/kubedb/percona"
-CLI_ROOT="$GOPATH/src/github.com/kubedb/cli"
+REPO_ROOT="$GOPATH/src/kubedb.dev/percona-xtradb"
+INSTALLER_ROOT="$GOPATH/src/github.com/kubedb/installer"
 
 pushd $REPO_ROOT
 
-onessl_found() {
-  # https://stackoverflow.com/a/677212/244009
-  if [ -x "$(command -v onessl)" ]; then
-    onessl wait-until-has -h >/dev/null 2>&1 || {
-      # old version of onessl found
-      echo "Found outdated onessl"
-      return 1
-    }
-    export ONESSL=onessl
-    return 0
-  fi
-  return 1
-}
+# https://stackoverflow.com/a/677212/244009
+if [[ ! -z "$(command -v onessl)" ]]; then
+  export ONESSL=onessl
+else
+  # ref: https://stackoverflow.com/a/27776822/244009
+  case "$(uname -s)" in
+    Darwin)
+      curl -fsSL -o onessl https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-darwin-amd64
+      chmod +x onessl
+      export ONESSL=./onessl
+      ;;
 
-onessl_found || {
-  echo "Downloading onessl ..."
-  if [[ "$(uname -m)" == "aarch64" ]]; then
-    curl -fsSL -o onessl https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-linux-arm64
-    chmod +x onessl
-    export ONESSL=./onessl
-  else
-    # ref: https://stackoverflow.com/a/27776822/244009
-    case "$(uname -s)" in
-      Darwin)
-        curl -fsSL -o onessl https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-darwin-amd64
-        chmod +x onessl
-        export ONESSL=./onessl
-        ;;
+    Linux)
+      curl -fsSL -o onessl https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-linux-amd64
+      chmod +x onessl
+      export ONESSL=./onessl
+      ;;
 
-      Linux)
-        curl -fsSL -o onessl https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-linux-amd64
-        chmod +x onessl
-        export ONESSL=./onessl
-        ;;
-
-      CYGWIN* | MINGW* | MSYS*)
-        curl -fsSL -o onessl.exe https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-windows-amd64.exe
-        chmod +x onessl.exe
-        export ONESSL=./onessl.exe
-        ;;
-      *)
-        echo 'other OS'
-        ;;
-    esac
-  fi
-}
+    CYGWIN* | MINGW32* | MSYS*)
+      curl -fsSL -o onessl.exe https://github.com/kubepack/onessl/releases/download/0.10.0/onessl-windows-amd64.exe
+      chmod +x onessl.exe
+      export ONESSL=./onessl.exe
+      ;;
+    *)
+      echo 'other OS'
+      ;;
+  esac
+fi
 
 source "$REPO_ROOT/hack/deploy/settings"
 source "$REPO_ROOT/hack/libbuild/common/lib.sh"
 
 export KUBE_CA=$($ONESSL get kube-ca | $ONESSL base64)
 export APPSCODE_ENV=${APPSCODE_ENV:-prod}
-export KUBEDB_SCRIPT="curl -fsSL https://raw.githubusercontent.com/kubedb/cli/0.9.0-rc.0/"
+export KUBEDB_SCRIPT="curl -fsSL https://raw.githubusercontent.com/kubedb/installer/0.12.0/"
 
 show_help() {
   echo "setup.sh - setup kubedb operator"
@@ -115,25 +97,25 @@ while test $# -gt 0; do
 done
 
 # If APPSCODE_ENV==dev , use cli repo locally to run the installer script.
-# Update "CLI_BRANCH" in deploy/settings file to pull a particular CLI repo branch.
+# Update "INSTALLER_BRANCH" in deploy/settings file to pull a particular CLI repo branch.
 if [ "$APPSCODE_ENV" = "dev" ]; then
   detect_tag ''
-  export KUBEDB_SCRIPT="cat $CLI_ROOT/"
+  export KUBEDB_SCRIPT="cat $INSTALLER_ROOT/"
   export CUSTOM_OPERATOR_TAG=$TAG
   echo ""
 
-  if [[ ! -d $CLI_ROOT ]]; then
+  if [[ ! -d $INSTALLER_ROOT ]]; then
     echo ">>> Cloning cli repo"
-    git clone -b $CLI_BRANCH https://github.com/kubedb/cli.git "${CLI_ROOT}"
-    pushd $CLI_ROOT
+    git clone -b $INSTALLER_BRANCH https://github.com/kubedb/cli.git "${INSTALLER_ROOT}"
+    pushd $INSTALLER_ROOT
   else
-    pushd $CLI_ROOT
+    pushd $INSTALLER_ROOT
     detect_tag ''
-    if [[ $git_branch != $CLI_BRANCH ]]; then
+    if [[ $git_branch != $INSTALLER_BRANCH ]]; then
       git fetch --all
-      git checkout $CLI_BRANCH
+      git checkout $INSTALLER_BRANCH
     fi
-    git pull --ff-only origin $CLI_BRANCH #Pull update from remote only if there will be no conflict.
+    git pull --ff-only origin $INSTALLER_BRANCH #Pull update from remote only if there will be no conflict.
   fi
 fi
 
@@ -142,21 +124,21 @@ env | sort | grep -e KUBEDB* -e APPSCODE*
 echo ""
 
 if [ "$SELF_HOSTED" -eq 1 ]; then
-  echo "${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=percona-operator $ARGS"
-  ${KUBEDB_SCRIPT}hack/deploy/kubedb.sh | bash -s -- --operator-name=percona-operator ${ARGS}
+  echo "${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=percona-xtradb-operator $ARGS"
+  ${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=percona-xtradb-operator ${ARGS}
 fi
 
 if [ "$MINIKUBE" -eq 1 ]; then
-  cat $CLI_ROOT/hack/deploy/validating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
-  cat $CLI_ROOT/hack/deploy/mutating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
+  cat $INSTALLER_ROOT/deploy/validating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
+  cat $INSTALLER_ROOT/deploy/mutating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
   cat $REPO_ROOT/hack/dev/apiregistration.yaml | $ONESSL envsubst | kubectl apply -f -
-  cat $CLI_ROOT/hack/deploy/psp/mysql.yaml | $ONESSL envsubst | kubectl apply -f -
+#  cat $INSTALLER_ROOT/deploy/psp/perconaxtradb.yaml | $ONESSL envsubst | kubectl apply -f -
   # Following line may give error if DBVersions CRD already not created
-  cat $CLI_ROOT/hack/deploy/kubedb-catalog/mysql.yaml | $ONESSL envsubst | kubectl apply -f - || true
+  cat $INSTALLER_ROOT/deploy/kubedb-catalog/percona.yaml | $ONESSL envsubst | kubectl apply -f - || true
 
   if [ "$MINIKUBE_RUN" -eq 1 ]; then
     $REPO_ROOT/hack/make.py
-    percona-operator run --v=4 \
+    percona-xtradb-operator run --v=4 \
       --secure-port=8443 \
       --enable-status-subresource=true \
       --enable-mutating-webhook=true \
@@ -167,7 +149,7 @@ if [ "$MINIKUBE" -eq 1 ]; then
   fi
 fi
 
-if [ $(pwd) = "$CLI_ROOT" ]; then
+if [ $(pwd) = "$INSTALLER_ROOT" ]; then
   popd
 fi
 popd

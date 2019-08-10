@@ -32,3 +32,8 @@ _testmain.go
 /hack/config/.env
 /test/e2e/junit.xml
 /test/e2e/report.xml
+
+# credential related files
+RESTIC_PASSWORD
+GOOGLE_PROJECT_ID
+GOOGLE_SERVICE_ACCOUNT_JSON_KEY

@@ -8,13 +8,10 @@ import (
 	"time"
 
 	"github.com/appscode/go/homedir"
-	cs "github.com/kubedb/apimachinery/client/clientset/versioned"
-	"github.com/kubedb/apimachinery/client/clientset/versioned/scheme"
-	"github.com/kubedb/percona/pkg/controller"
-	"github.com/kubedb/percona/test/e2e/framework"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	kext_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
@@ -23,6 +20,11 @@ import (
 	ka "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"kmodules.xyz/client-go/logs"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	"kubedb.dev/apimachinery/client/clientset/versioned/scheme"
+	"kubedb.dev/percona-xtradb/pkg/controller"
+	"kubedb.dev/percona-xtradb/test/e2e/framework"
+	scs "stash.appscode.dev/stash/client/clientset/versioned"
 )
 
 var (
@@ -33,9 +35,8 @@ func init() {
 	scheme.AddToScheme(clientSetScheme.Scheme)
 
 	flag.StringVar(&storageClass, "storageclass", storageClass, "Kubernetes StorageClass name")
-	flag.StringVar(&framework.DBVersion, "db-version", framework.DBVersion, "MySQL version")
+	flag.StringVar(&framework.DBCatalogName, "db-catalog", framework.DBCatalogName, "PerconaXtraDB version")
 	flag.StringVar(&framework.DockerRegistry, "docker-registry", framework.DockerRegistry, "User provided docker repository")
-	flag.StringVar(&framework.ExporterTag, "exporter-tag", framework.ExporterTag, "Tag of official exporter image")
 	flag.BoolVar(&framework.SelfHostedOperator, "selfhosted-operator", framework.SelfHostedOperator, "Enable this for provided controller")
 }
 
@@ -73,15 +74,18 @@ var _ = BeforeSuite(func() {
 
 	// Clients
 	kubeClient := kubernetes.NewForConfigOrDie(config)
-	extClient := cs.NewForConfigOrDie(config)
+	apiExtKubeClient := kext_cs.NewForConfigOrDie(config)
+	dbClient := cs.NewForConfigOrDie(config)
 	kaClient := ka.NewForConfigOrDie(config)
 	appCatalogClient, err := appcat_cs.NewForConfig(config)
+	stashClient := scs.NewForConfigOrDie(config)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	// Framework
-	root = framework.New(config, kubeClient, extClient, kaClient, appCatalogClient, storageClass)
+	root = framework.New(config, kubeClient, apiExtKubeClient, dbClient, kaClient, appCatalogClient, stashClient, storageClass)
 
 	// Create namespace
 	By("Using namespace " + root.Namespace())
@@ -104,8 +108,8 @@ var _ = AfterSuite(func() {
 		By("Delete Admission Controller Configs")
 		root.CleanAdmissionConfigs()
 	}
-	By("Delete left over MySQL objects")
-	root.CleanMySQL()
+	By("Delete left over PerconaXtraDB objects")
+	root.CleanPerconaXtraDB()
 	By("Delete left over Dormant Database objects")
 	root.CleanDormantDatabase()
 	By("Delete left over Snapshot objects")

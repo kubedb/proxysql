@@ -2,12 +2,13 @@
 set -eou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT=${GOPATH}/src/github.com/kubedb/percona
+REPO_ROOT=${GOPATH}/src/kubedb.dev/percona-xtradb
 
-export DB_UPDATE=1
-export TOOLS_UPDATE=1
-export EXPORTER_UPDATE=1
-export OPERATOR_UPDATE=1
+export DB_UPDATE=0
+export TOOLS_UPDATE=0
+export EXPORTER_UPDATE=0
+export OPERATOR_UPDATE=0
+export PROXYSQL_UPDATE=0
 
 show_help() {
   echo "update-docker.sh [options]"
@@ -18,6 +19,7 @@ show_help() {
   echo "    --tools-only                 update only database-tools images"
   echo "    --exporter-only              update only database-exporter images"
   echo "    --operator-only              update only operator image"
+  echo "    --proxysql-only              update only proxysql image"
 }
 
 while test $# -gt 0; do
@@ -28,30 +30,22 @@ while test $# -gt 0; do
       ;;
     --db-only)
       export DB_UPDATE=1
-      export TOOLS_UPDATE=0
-      export EXPORTER_UPDATE=0
-      export OPERATOR_UPDATE=0
       shift
       ;;
     --tools-only)
-      export DB_UPDATE=0
       export TOOLS_UPDATE=1
-      export EXPORTER_UPDATE=0
-      export OPERATOR_UPDATE=0
       shift
       ;;
     --exporter-only)
-      export DB_UPDATE=0
-      export TOOLS_UPDATE=0
       export EXPORTER_UPDATE=1
-      export OPERATOR_UPDATE=0
       shift
       ;;
     --operator-only)
-      export DB_UPDATE=0
-      export TOOLS_UPDATE=0
-      export EXPORTER_UPDATE=0
       export OPERATOR_UPDATE=1
+      shift
+      ;;
+    --proxysql-only)
+      export PROXYSQL_UPDATE=1
       shift
       ;;
     *)
@@ -62,11 +56,7 @@ while test $# -gt 0; do
 done
 
 dbversions=(
-  5.7.25
   5.7
-  8.0.3
-  8.0.14
-  8.0
 )
 
 exporters=(
@@ -80,16 +70,8 @@ echo ""
 if [ "$DB_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing database images" || true
   for db in "${dbversions[@]}"; do
-    ${REPO_ROOT}/hack/docker/mysql/${db}/make.sh build
-    ${REPO_ROOT}/hack/docker/mysql/${db}/make.sh push
-  done
-fi
-
-if [ "$TOOLS_UPDATE" -eq 1 ]; then
-  cowsay -f tux "Processing database-tools images" || true
-  for db in "${dbversions[@]}"; do
-    ${REPO_ROOT}/hack/docker/mysql-tools/${db}/make.sh build
-    ${REPO_ROOT}/hack/docker/mysql-tools/${db}/make.sh push
+    ${REPO_ROOT}/hack/docker/percona/${db}/make.sh build
+    ${REPO_ROOT}/hack/docker/percona/${db}/make.sh push
   done
 fi
 
@@ -102,6 +84,14 @@ fi
 
 if [ "$OPERATOR_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing Operator images" || true
-  ${REPO_ROOT}/hack/docker/percona-operator/make.sh build
-  ${REPO_ROOT}/hack/docker/percona-operator/make.sh push
+  ${REPO_ROOT}/hack/docker/percona-xtradb-operator/make.sh build
+  ${REPO_ROOT}/hack/docker/percona-xtradb-operator/make.sh push
+fi
+
+if [ "$PROXYSQL_UPDATE" -eq 1 ]; then
+  cowsay -f tux "Processing Proxysql images" || true
+  for db in "${dbversions[@]}"; do
+    ${REPO_ROOT}/hack/docker/proxysql/${db}/make.sh build
+    ${REPO_ROOT}/hack/docker/proxysql/${db}/make.sh push
+  done
 fi

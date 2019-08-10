@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/kubedb/percona/pkg/cmds"
 	"kmodules.xyz/client-go/logs"
+	"kubedb.dev/percona-xtradb/pkg/cmds"
 )
 
 func main() {

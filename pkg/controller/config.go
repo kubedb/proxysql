@@ -2,11 +2,6 @@ package controller
 
 import (
 	pcm "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
-	cs "github.com/kubedb/apimachinery/client/clientset/versioned"
-	amc "github.com/kubedb/apimachinery/pkg/controller"
-	"github.com/kubedb/apimachinery/pkg/controller/dormantdatabase"
-	snapc "github.com/kubedb/apimachinery/pkg/controller/snapshot"
-	"github.com/kubedb/apimachinery/pkg/eventer"
 	crd_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
@@ -15,6 +10,13 @@ import (
 	reg_util "kmodules.xyz/client-go/admissionregistration/v1beta1"
 	"kmodules.xyz/client-go/discovery"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	amc "kubedb.dev/apimachinery/pkg/controller"
+	"kubedb.dev/apimachinery/pkg/controller/dormantdatabase"
+	"kubedb.dev/apimachinery/pkg/controller/restoresession"
+	snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
+	"kubedb.dev/apimachinery/pkg/eventer"
+	scs "stash.appscode.dev/stash/client/clientset/versioned"
 )
 
 const (
@@ -29,6 +31,7 @@ type OperatorConfig struct {
 	KubeClient       kubernetes.Interface
 	APIExtKubeClient crd_cs.ApiextensionsV1beta1Interface
 	DBClient         cs.Interface
+	StashClient      scs.Interface
 	DynamicClient    dynamic.Interface
 	AppCatalogClient appcat_cs.AppcatalogV1alpha1Interface
 	PromClient       pcm.MonitoringV1Interface
@@ -46,13 +49,14 @@ func (c *OperatorConfig) New() (*Controller, error) {
 		return nil, err
 	}
 
-	recorder := eventer.NewEventRecorder(c.KubeClient, "MySQL operator")
+	recorder := eventer.NewEventRecorder(c.KubeClient, "PerconaXtraDB operator")
 
 	ctrl := New(
 		c.ClientConfig,
 		c.KubeClient,
 		c.APIExtKubeClient,
 		c.DBClient,
+		c.StashClient,
 		c.DynamicClient,
 		c.AppCatalogClient,
 		c.PromClient,
@@ -65,9 +69,10 @@ func (c *OperatorConfig) New() (*Controller, error) {
 		options.LabelSelector = ctrl.selector.String()
 	}
 
-	// Initialize Job and Snapshot Informer. Later EventHandler will be added to these informers.
 	ctrl.DrmnInformer = dormantdatabase.NewController(ctrl.Controller, ctrl, ctrl.Config, tweakListOptions, recorder).InitInformer()
-	ctrl.SnapInformer, ctrl.JobInformer = snapc.NewController(ctrl.Controller, ctrl, ctrl.Config, tweakListOptions, recorder).InitInformer()
+
+	// Initialize RestoreSession informer.
+	ctrl.RSInformer = restoresession.NewController(ctrl.Controller, ctrl, ctrl.Config, tweakListOptions, recorder).InitInformer()
 
 	if err := ctrl.EnsureCustomResourceDefinitions(); err != nil {
 		return nil, err

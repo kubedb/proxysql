@@ -8,14 +8,16 @@ import (
 
 	"github.com/appscode/go/crypto/rand"
 	"github.com/appscode/go/log"
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
-	"github.com/kubedb/percona/pkg/controller"
 	. "github.com/onsi/gomega"
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	v1 "kmodules.xyz/client-go/core/v1"
 	store "kmodules.xyz/objectstore-api/api/v1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	"kubedb.dev/percona-xtradb/pkg/controller"
+	"stash.appscode.dev/stash/pkg/restic"
 )
 
 func (fi *Invocation) SecretForLocalBackend() *core.Secret {
@@ -113,6 +115,18 @@ func (fi *Invocation) SecretForSwiftBackend() *core.Secret {
 	}
 }
 
+func (i *Invocation) PatchSecretForRestic(secret *core.Secret) *core.Secret {
+	if secret == nil {
+		return secret
+	}
+
+	secret.StringData = v1.UpsertMap(secret.StringData, map[string]string{
+		restic.RESTIC_PASSWORD: "RESTIC_PASSWORD",
+	})
+
+	return secret
+}
+
 // TODO: Add more methods for Swift, Backblaze B2, Rest server backend.
 
 func (f *Framework) CreateSecret(obj *core.Secret) error {
@@ -139,13 +153,22 @@ func (f *Framework) UpdateSecret(meta metav1.ObjectMeta, transformer func(core.S
 	return fmt.Errorf("Failed to update Secret %s@%s after %d attempts.", meta.Name, meta.Namespace, attempt)
 }
 
-func (f *Framework) GetMySQLRootPassword(mysql *api.MySQL) (string, error) {
-	secret, err := f.kubeClient.CoreV1().Secrets(mysql.Namespace).Get(mysql.Spec.DatabaseSecret.SecretName, metav1.GetOptions{})
+func (f *Framework) GetMySQLRootPassword(px *api.PerconaXtraDB) (string, error) {
+	secret, err := f.kubeClient.CoreV1().Secrets(px.Namespace).Get(px.Spec.DatabaseSecret.SecretName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	password := string(secret.Data[controller.KeyMySQLPassword])
+	password := string(secret.Data[controller.KeyPerconaXtraDBPassword])
 	return password, nil
+}
+
+func (f *Framework) GetMySQLCred(px *api.PerconaXtraDB, key string) (string, error) {
+	secret, err := f.kubeClient.CoreV1().Secrets(px.Namespace).Get(px.Spec.DatabaseSecret.SecretName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	data := string(secret.Data[key])
+	return data, nil
 }
 
 func (f *Framework) GetSecret(meta metav1.ObjectMeta) (*core.Secret, error) {
@@ -158,7 +181,7 @@ func (f *Framework) DeleteSecret(meta metav1.ObjectMeta) error {
 
 func (f *Framework) EventuallyDBSecretCount(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	labelMap := map[string]string{
-		api.LabelDatabaseKind: api.ResourceKindMySQL,
+		api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
 		api.LabelDatabaseName: meta.Name,
 	}
 	labelSelector := labels.SelectorFromSet(labelMap)

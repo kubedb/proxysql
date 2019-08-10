@@ -5,10 +5,6 @@ import (
 	"sync"
 
 	"github.com/appscode/go/log"
-	"github.com/appscode/go/types"
-	"github.com/google/uuid"
-	api "github.com/kubedb/apimachinery/apis/kubedb/v1alpha1"
-	cs "github.com/kubedb/apimachinery/client/clientset/versioned"
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
@@ -22,27 +18,32 @@ import (
 	meta_util "kmodules.xyz/client-go/meta"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 )
 
-type MySQLMutator struct {
+// PerconaXtraDBMutator implements the AdmissionHook interface to mutate the PerconaXtraDB resources
+type PerconaXtraDBMutator struct {
 	client      kubernetes.Interface
 	extClient   cs.Interface
 	lock        sync.RWMutex
 	initialized bool
 }
 
-var _ hookapi.AdmissionHook = &MySQLMutator{}
+var _ hookapi.AdmissionHook = &PerconaXtraDBMutator{}
 
-func (a *MySQLMutator) Resource() (plural schema.GroupVersionResource, singular string) {
+// Resource is the resource to use for hosting mutating admission webhook.
+func (a *PerconaXtraDBMutator) Resource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "mutators.kubedb.com",
 			Version:  "v1alpha1",
-			Resource: "mysqlmutators",
+			Resource: "perconaxtradbmutators",
 		},
-		"mysqlmutator"
+		"perconaxtradbmutator"
 }
 
-func (a *MySQLMutator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
+// Initialize is called as a post-start hook
+func (a *PerconaXtraDBMutator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -58,14 +59,16 @@ func (a *MySQLMutator) Initialize(config *rest.Config, stopCh <-chan struct{}) e
 	return err
 }
 
-func (a *MySQLMutator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
+// Admit is called to decide whether to accept the admission request.
+// The returned response may use the Patch field to mutate the object.
+func (a *PerconaXtraDBMutator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
 	status := &admission.AdmissionResponse{}
 
 	// N.B.: No Mutating for delete
 	if (req.Operation != admission.Create && req.Operation != admission.Update) ||
 		len(req.SubResource) != 0 ||
 		req.Kind.Group != api.SchemeGroupVersion.Group ||
-		req.Kind.Kind != api.ResourceKindMySQL {
+		req.Kind.Kind != api.ResourceKindPerconaXtraDB {
 		status.Allowed = true
 		return status
 	}
@@ -79,11 +82,11 @@ func (a *MySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admissi
 	if err != nil {
 		return hookapi.StatusBadRequest(err)
 	}
-	mysqlMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.MySQL).DeepCopy())
+	perconaxtradbMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.PerconaXtraDB).DeepCopy())
 	if err != nil {
 		return hookapi.StatusForbidden(err)
-	} else if mysqlMod != nil {
-		patch, err := meta_util.CreateJSONPatch(req.Object.Raw, mysqlMod)
+	} else if perconaxtradbMod != nil {
+		patch, err := meta_util.CreateJSONPatch(req.Object.Raw, perconaxtradbMod)
 		if err != nil {
 			return hookapi.StatusInternalServerError(err)
 		}
@@ -97,47 +100,28 @@ func (a *MySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admissi
 }
 
 // setDefaultValues provides the defaulting that is performed in mutating stage of creating/updating a MySQL database
-func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, mysql *api.MySQL) (runtime.Object, error) {
-	if mysql.Spec.Version == "" {
+func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, px *api.PerconaXtraDB) (runtime.Object, error) {
+	if px.Spec.Version == "" {
 		return nil, errors.New(`'spec.version' is missing`)
 	}
 
-	if mysql.Spec.Topology != nil && mysql.Spec.Topology.Mode != nil &&
-		*mysql.Spec.Topology.Mode == api.MySQLClusterModeGroup {
-		if mysql.Spec.Topology.Group == nil {
-			mysql.Spec.Topology.Group = &api.MySQLGroupSpec{}
-		}
+	px.SetDefaults()
 
-		if mysql.Spec.Topology.Group.Name == "" {
-			grName, err := uuid.NewRandom()
-			if err != nil {
-				return nil, errors.New("failed to generate a new group name")
-			}
-			mysql.Spec.Topology.Group.Name = grName.String()
-		}
-
-		if mysql.Spec.Topology.Group.BaseServerID == nil {
-			mysql.Spec.Topology.Group.BaseServerID = types.UIntP(api.MySQLDefaultBaseServerID)
-		}
-	}
-
-	mysql.SetDefaults()
-
-	if err := setDefaultsFromDormantDB(extClient, mysql); err != nil {
+	if err := setDefaultsFromDormantDB(extClient, px); err != nil {
 		return nil, err
 	}
 
 	// If monitoring spec is given without port,
 	// set default Listening port
-	setMonitoringPort(mysql)
+	setMonitoringPort(px)
 
-	return mysql, nil
+	return px, nil
 }
 
 // setDefaultsFromDormantDB takes values from Similar Dormant Database
-func setDefaultsFromDormantDB(extClient cs.Interface, mysql *api.MySQL) error {
+func setDefaultsFromDormantDB(extClient cs.Interface, px *api.PerconaXtraDB) error {
 	// Check if DormantDatabase exists or not
-	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(mysql.Namespace).Get(mysql.Name, metav1.GetOptions{})
+	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(px.Namespace).Get(px.Name, metav1.GetOptions{})
 	if err != nil {
 		if !kerr.IsNotFound(err) {
 			return err
@@ -146,52 +130,44 @@ func setDefaultsFromDormantDB(extClient cs.Interface, mysql *api.MySQL) error {
 	}
 
 	// Check DatabaseKind
-	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindMySQL {
-		return errors.New(fmt.Sprintf(`invalid MySQL: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, mysql.Namespace, mysql.Name, dormantDb.Namespace, dormantDb.Name))
+	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindPerconaXtraDB {
+		return errors.New(fmt.Sprintf(`invalid PerconaXtraDB: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, px.Namespace, px.Name, dormantDb.Namespace, dormantDb.Name))
 	}
 
 	// Check Origin Spec
-	ddbOriginSpec := dormantDb.Spec.Origin.Spec.MySQL
+	ddbOriginSpec := dormantDb.Spec.Origin.Spec.PerconaXtraDB
 	ddbOriginSpec.SetDefaults()
 
 	// If DatabaseSecret of new object is not given,
 	// Take dormantDatabaseSecretName
-	if mysql.Spec.DatabaseSecret == nil {
-		mysql.Spec.DatabaseSecret = ddbOriginSpec.DatabaseSecret
+	if px.Spec.DatabaseSecret == nil {
+		px.Spec.DatabaseSecret = ddbOriginSpec.DatabaseSecret
 	}
 
 	// If Monitoring Spec of new object is not given,
 	// Take Monitoring Settings from Dormant
-	if mysql.Spec.Monitor == nil {
-		mysql.Spec.Monitor = ddbOriginSpec.Monitor
+	if px.Spec.Monitor == nil {
+		px.Spec.Monitor = ddbOriginSpec.Monitor
 	} else {
-		ddbOriginSpec.Monitor = mysql.Spec.Monitor
-	}
-
-	// If Backup Scheduler of new object is not given,
-	// Take Backup Scheduler Settings from Dormant
-	if mysql.Spec.BackupSchedule == nil {
-		mysql.Spec.BackupSchedule = ddbOriginSpec.BackupSchedule
-	} else {
-		ddbOriginSpec.BackupSchedule = mysql.Spec.BackupSchedule
+		ddbOriginSpec.Monitor = px.Spec.Monitor
 	}
 
 	// Skip checking UpdateStrategy
-	ddbOriginSpec.UpdateStrategy = mysql.Spec.UpdateStrategy
+	ddbOriginSpec.UpdateStrategy = px.Spec.UpdateStrategy
 
 	// Skip checking TerminationPolicy
-	ddbOriginSpec.TerminationPolicy = mysql.Spec.TerminationPolicy
+	ddbOriginSpec.TerminationPolicy = px.Spec.TerminationPolicy
 
-	if !meta_util.Equal(ddbOriginSpec, &mysql.Spec) {
-		diff := meta_util.Diff(ddbOriginSpec, &mysql.Spec)
-		log.Errorf("mysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("mysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
+	if !meta_util.Equal(ddbOriginSpec, &px.Spec) {
+		diff := meta_util.Diff(ddbOriginSpec, &px.Spec)
+		log.Errorf("perconaxtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
+		return errors.New(fmt.Sprintf("perconaxtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
-	if _, err := meta_util.GetString(mysql.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
-		mysql.Spec.Init != nil &&
-		mysql.Spec.Init.SnapshotSource != nil {
-		mysql.Annotations = core_util.UpsertMap(mysql.Annotations, map[string]string{
+	if _, err := meta_util.GetString(px.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
+		px.Spec.Init != nil &&
+		(px.Spec.Init.SnapshotSource != nil || px.Spec.Init.StashRestoreSession != nil) {
+		px.Annotations = core_util.UpsertMap(px.Annotations, map[string]string{
 			api.AnnotationInitialized: "",
 		})
 	}
@@ -203,14 +179,14 @@ func setDefaultsFromDormantDB(extClient cs.Interface, mysql *api.MySQL) error {
 
 // Assign Default Monitoring Port if MonitoringSpec Exists
 // and the AgentVendor is Prometheus.
-func setMonitoringPort(mysql *api.MySQL) {
-	if mysql.Spec.Monitor != nil &&
-		mysql.GetMonitoringVendor() == mona.VendorPrometheus {
-		if mysql.Spec.Monitor.Prometheus == nil {
-			mysql.Spec.Monitor.Prometheus = &mona.PrometheusSpec{}
+func setMonitoringPort(px *api.PerconaXtraDB) {
+	if px.Spec.Monitor != nil &&
+		px.GetMonitoringVendor() == mona.VendorPrometheus {
+		if px.Spec.Monitor.Prometheus == nil {
+			px.Spec.Monitor.Prometheus = &mona.PrometheusSpec{}
 		}
-		if mysql.Spec.Monitor.Prometheus.Port == 0 {
-			mysql.Spec.Monitor.Prometheus.Port = api.PrometheusExporterPortNumber
+		if px.Spec.Monitor.Prometheus.Port == 0 {
+			px.Spec.Monitor.Prometheus.Port = api.PrometheusExporterPortNumber
 		}
 	}
 }
