@@ -132,9 +132,9 @@ if [ "$MINIKUBE" -eq 1 ]; then
   cat $INSTALLER_ROOT/deploy/validating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
   cat $INSTALLER_ROOT/deploy/mutating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
   cat $REPO_ROOT/hack/dev/apiregistration.yaml | $ONESSL envsubst | kubectl apply -f -
-#  cat $INSTALLER_ROOT/deploy/psp/perconaxtradb.yaml | $ONESSL envsubst | kubectl apply -f -
+#  cat $INSTALLER_ROOT/deploy/psp/percona-xtradb.yaml | $ONESSL envsubst | kubectl apply -f -
   # Following line may give error if DBVersions CRD already not created
-  cat $INSTALLER_ROOT/deploy/kubedb-catalog/percona.yaml | $ONESSL envsubst | kubectl apply -f - || true
+  cat $INSTALLER_ROOT/deploy/kubedb-catalog/percona-xtradb.yaml | $ONESSL envsubst | kubectl apply -f - || true
 
   if [ "$MINIKUBE_RUN" -eq 1 ]; then
     $REPO_ROOT/hack/make.py

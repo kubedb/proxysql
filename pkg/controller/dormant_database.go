@@ -62,7 +62,7 @@ func (c *Controller) WipeOutDatabase(drmn *api.DormantDatabase) error {
 	return nil
 }
 
-// wipeOutDatabase is a generic function to call from WipeOutDatabase and perconaxtradb pause method.
+// wipeOutDatabase is a generic function to call from WipeOutDatabase and percona-xtradb pause method.
 func (c *Controller) wipeOutDatabase(meta metav1.ObjectMeta, secrets []string, ref *core.ObjectReference) error {
 	secretUsed, err := c.secretsUsedByPeers(meta)
 	if err != nil {

@@ -102,7 +102,7 @@ func (c *Controller) EnsureCustomResourceDefinitions() error {
 	return apiext_util.RegisterCRDs(c.ApiExtKubeClient, crds)
 }
 
-// Init initializes perconaxtradb, DormantDB amd RestoreSession watcher
+// Init initializes percona-xtradb, DormantDB amd RestoreSession watcher
 func (c *Controller) Init() error {
 	c.initWatcher()
 	c.DrmnQueue = drmnc.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)

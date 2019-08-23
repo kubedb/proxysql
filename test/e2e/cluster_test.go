@@ -67,11 +67,11 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 
 	var deleteTestResource = func() {
 		if px == nil {
-			log.Infoln("Skipping cleanup. Reason: perconaxtradb is nil")
+			log.Infoln("Skipping cleanup. Reason: PerconaXtraDB object is nil")
 			return
 		}
 
-		By("Check if perconaxtradb " + px.Name + " exists.")
+		By("Check if PerconaXtraDB " + px.Name + " exists.")
 		my, err := f.GetPerconaXtraDB(px.ObjectMeta)
 		if err != nil {
 			if kerr.IsNotFound(err) {
@@ -92,7 +92,7 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 		}
 
 		if my.Spec.TerminationPolicy == api.TerminationPolicyPause {
-			By("Wait for perconaxtradb to be paused")
+			By("Wait for PerconaXtraDB to be paused")
 			f.EventuallyDormantDatabaseStatus(px.ObjectMeta).Should(matcher.HavePaused())
 
 			By("WipeOut PerconaXtraDB")
@@ -285,7 +285,7 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 					return in
 				})
 				Expect(err).NotTo(HaveOccurred())
-				By("Wait for perconaxtradb be patched")
+				By("Wait for PerconaXtraDB be patched")
 				Expect(f.WaitUntilPerconaXtraDBReplicasBePatched(px.ObjectMeta, api.PerconaXtraDBDefaultClusterSize+1)).
 					NotTo(HaveOccurred())
 
@@ -331,7 +331,7 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 					return in
 				})
 				Expect(err).NotTo(HaveOccurred())
-				By("Wait for perconaxtradb be patched")
+				By("Wait for PerconaXtraDB be patched")
 				Expect(f.WaitUntilPerconaXtraDBReplicasBePatched(px.ObjectMeta, api.PerconaXtraDBDefaultClusterSize)).
 					NotTo(HaveOccurred())
 
@@ -461,7 +461,7 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 
 				garbagePerconaXtraDB.Items = append(garbagePerconaXtraDB.Items, *oldPerconaXtraDB)
 
-				By("Create perconaxtradb for initializing from stash")
+				By("Create PerconaXtraDB for initializing from stash")
 				*px = *f.PerconaXtraDBCluster()
 				rs = f.RestoreSession(px.ObjectMeta, oldPerconaXtraDB.ObjectMeta, oldPerconaXtraDB.Spec.Replicas)
 				px.Spec.DatabaseSecret = oldPerconaXtraDB.Spec.DatabaseSecret

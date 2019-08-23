@@ -31,10 +31,10 @@ type workloadOptions struct {
 	// db container options
 	conatainerName string
 	image          string
-	cmd            []string // cmd of `perconaxtradb` container
-	args           []string // args of `perconaxtradb` container
+	cmd            []string // cmd of `percona-xtradb` container
+	args           []string // args of `percona-xtradb` container
 	ports          []core.ContainerPort
-	envList        []core.EnvVar // envList of `perconaxtradb` container
+	envList        []core.EnvVar // envList of `percona-xtradb` container
 	volumeMount    []core.VolumeMount
 	configSource   *core.VolumeSource
 
@@ -232,8 +232,8 @@ func (c *Controller) ensurePerconaXtraDB(px *api.PerconaXtraDB) (kutil.VerbType,
 	return c.ensureStatefulSet(px, px.Spec.UpdateStrategy, opts)
 }
 
-func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, error) {
-	pxcVersion, err := c.ExtClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(pxc.Spec.Version), metav1.GetOptions{})
+func (c *Controller) ensureProxysql(px *api.PerconaXtraDB) (kutil.VerbType, error) {
+	pxVersion, err := c.ExtClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(px.Spec.Version), metav1.GetOptions{})
 	if err != nil {
 		return kutil.VerbUnchanged, err
 	}
@@ -265,16 +265,16 @@ func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, err
 		},
 	})
 
-	pxc.Spec.PodTemplate.Spec.ServiceAccountName = pxc.OffshootName()
-	proxysqlServiceName, err := c.createProxysqlService(pxc)
+	px.Spec.PodTemplate.Spec.ServiceAccountName = px.OffshootName()
+	proxysqlServiceName, err := c.createProxysqlService(px)
 	if err != nil {
 		return kutil.VerbUnchanged, err
 	}
 
 	var envList []core.EnvVar
 	var peers []string
-	for i := 0; i < int(*pxc.Spec.Replicas); i += 1 {
-		peers = append(peers, pxc.PeerName(i))
+	for i := 0; i < int(*px.Spec.Replicas); i += 1 {
+		peers = append(peers, px.PeerName(i))
 	}
 	envList = append(envList, []core.EnvVar{
 		{
@@ -282,7 +282,7 @@ func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, err
 			ValueFrom: &core.EnvVarSource{
 				SecretKeyRef: &core.SecretKeySelector{
 					LocalObjectReference: core.LocalObjectReference{
-						Name: pxc.Spec.DatabaseSecret.SecretName,
+						Name: px.Spec.DatabaseSecret.SecretName,
 					},
 					Key: KeyPerconaXtraDBPassword,
 				},
@@ -293,7 +293,7 @@ func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, err
 			ValueFrom: &core.EnvVarSource{
 				SecretKeyRef: &core.SecretKeySelector{
 					LocalObjectReference: core.LocalObjectReference{
-						Name: pxc.Spec.DatabaseSecret.SecretName,
+						Name: px.Spec.DatabaseSecret.SecretName,
 					},
 					Key: api.ProxysqlUser,
 				},
@@ -304,7 +304,7 @@ func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, err
 			ValueFrom: &core.EnvVarSource{
 				SecretKeyRef: &core.SecretKeySelector{
 					LocalObjectReference: core.LocalObjectReference{
-						Name: pxc.Spec.DatabaseSecret.SecretName,
+						Name: px.Spec.DatabaseSecret.SecretName,
 					},
 					Key: api.ProxysqlPassword,
 				},
@@ -317,31 +317,31 @@ func (c *Controller) ensureProxysql(pxc *api.PerconaXtraDB) (kutil.VerbType, err
 	}...)
 
 	opts := workloadOptions{
-		stsName:        pxc.ProxysqlName(),
-		labels:         pxc.ProxysqlLabels(),
-		selectors:      pxc.ProxysqlSelectors(),
+		stsName:        px.ProxysqlName(),
+		labels:         px.ProxysqlLabels(),
+		selectors:      px.ProxysqlSelectors(),
 		conatainerName: "proxysql",
-		image:          pxcVersion.Spec.Proxysql.Image,
+		image:          pxVersion.Spec.Proxysql.Image,
 		args:           nil,
 		cmd:            nil,
 		ports:          ports,
 		envList:        envList,
 		initContainers: nil,
 		gvrSvcName:     proxysqlServiceName,
-		podTemplate:    &pxc.Spec.PXC.Proxysql.PodTemplate,
+		podTemplate:    &px.Spec.PXC.Proxysql.PodTemplate,
 		configSource:   nil,
 		pvcSpec:        nil,
-		replicas:       pxc.Spec.PXC.Proxysql.Replicas,
+		replicas:       px.Spec.PXC.Proxysql.Replicas,
 		volume:         volumes,
 		volumeMount:    volumeMounts,
 	}
 
-	return c.ensureStatefulSet(pxc, pxc.Spec.UpdateStrategy, opts)
+	return c.ensureStatefulSet(px, px.Spec.UpdateStrategy, opts)
 }
 
-func (c *Controller) checkStatefulSet(pxc *api.PerconaXtraDB, stsName string) error {
+func (c *Controller) checkStatefulSet(px *api.PerconaXtraDB, stsName string) error {
 	// StatefulSet for PerconaXtraDB database
-	statefulSet, err := c.Client.AppsV1().StatefulSets(pxc.Namespace).Get(stsName, metav1.GetOptions{})
+	statefulSet, err := c.Client.AppsV1().StatefulSets(px.Namespace).Get(stsName, metav1.GetOptions{})
 	if err != nil {
 		if kerr.IsNotFound(err) {
 			return nil
@@ -350,8 +350,8 @@ func (c *Controller) checkStatefulSet(pxc *api.PerconaXtraDB, stsName string) er
 	}
 
 	if statefulSet.Labels[api.LabelDatabaseKind] != api.ResourceKindPerconaXtraDB ||
-		statefulSet.Labels[api.LabelDatabaseName] != pxc.Name {
-		return fmt.Errorf(`intended statefulSet "%v/%v" already exists`, pxc.Namespace, stsName)
+		statefulSet.Labels[api.LabelDatabaseName] != px.Name {
+		return fmt.Errorf(`intended statefulSet "%v/%v" already exists`, px.Namespace, stsName)
 	}
 
 	return nil
@@ -508,7 +508,7 @@ func (c *Controller) ensureStatefulSet(
 	return vt, nil
 }
 
-func upsertDataVolume(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *apps.StatefulSet {
+func upsertDataVolume(statefulSet *apps.StatefulSet, px *api.PerconaXtraDB) *apps.StatefulSet {
 	for i, container := range statefulSet.Spec.Template.Spec.Containers {
 		if container.Name == api.ResourceSingularPerconaXtraDB {
 			volumeMount := core.VolumeMount{
@@ -519,8 +519,8 @@ func upsertDataVolume(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *ap
 			volumeMounts = core_util.UpsertVolumeMount(volumeMounts, volumeMount)
 			statefulSet.Spec.Template.Spec.Containers[i].VolumeMounts = volumeMounts
 
-			pvcSpec := pxc.Spec.Storage
-			if pxc.Spec.StorageType == api.StorageTypeEphemeral {
+			pvcSpec := px.Spec.Storage
+			if px.Spec.StorageType == api.StorageTypeEphemeral {
 				ed := core.EmptyDirVolumeSource{}
 				if pvcSpec != nil {
 					if sz, found := pvcSpec.Resources.Requests[core.ResourceStorage]; found {
@@ -540,7 +540,7 @@ func upsertDataVolume(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *ap
 					pvcSpec.AccessModes = []core.PersistentVolumeAccessMode{
 						core.ReadWriteOnce,
 					}
-					log.Infof(`Using "%v" as AccessModes in perconaxtradb.Spec.Storage`, core.ReadWriteOnce)
+					log.Infof(`Using "%v" as AccessModes in .spec.storage`, core.ReadWriteOnce)
 				}
 
 				claim := core.PersistentVolumeClaim{
@@ -563,7 +563,7 @@ func upsertDataVolume(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *ap
 }
 
 // upsertUserEnv add/overwrite env from user provided env in crd spec
-func upsertEnv(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *apps.StatefulSet {
+func upsertEnv(statefulSet *apps.StatefulSet, px *api.PerconaXtraDB) *apps.StatefulSet {
 	for i, container := range statefulSet.Spec.Template.Spec.Containers {
 		if container.Name == api.ResourceSingularPerconaXtraDB || container.Name == "exporter" {
 			envs := []core.EnvVar{
@@ -572,7 +572,7 @@ func upsertEnv(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *apps.Stat
 					ValueFrom: &core.EnvVarSource{
 						SecretKeyRef: &core.SecretKeySelector{
 							LocalObjectReference: core.LocalObjectReference{
-								Name: pxc.Spec.DatabaseSecret.SecretName,
+								Name: px.Spec.DatabaseSecret.SecretName,
 							},
 							Key: KeyPerconaXtraDBPassword,
 						},
@@ -583,7 +583,7 @@ func upsertEnv(statefulSet *apps.StatefulSet, pxc *api.PerconaXtraDB) *apps.Stat
 					ValueFrom: &core.EnvVarSource{
 						SecretKeyRef: &core.SecretKeySelector{
 							LocalObjectReference: core.LocalObjectReference{
-								Name: pxc.Spec.DatabaseSecret.SecretName,
+								Name: px.Spec.DatabaseSecret.SecretName,
 							},
 							Key: KeyPerconaXtraDBUser,
 						},

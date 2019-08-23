@@ -157,7 +157,7 @@ var cases = []struct {
 		false,
 		false,
 	},
-	{"Create Invalid perconaxtradb",
+	{"Create Invalid percona-xtradb",
 		requestKind,
 		"foo",
 		"default",

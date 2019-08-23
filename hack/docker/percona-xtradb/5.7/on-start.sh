@@ -7,7 +7,7 @@ set -eou pipefail
 #   POD_NAMESPACE       = the Pods' namespace
 #   MYSQL_ROOT_USERNAME = root user name
 #   MYSQL_ROOT_PASSWORD = root password
-#   CLUSTER_NAME        = name of the PerconaXtraDB XtraDB Cluster
+#   CLUSTER_NAME        = name of the PerconaXtraDB Cluster
 
 script_name=${0##*/}
 USER="$MYSQL_ROOT_USERNAME"

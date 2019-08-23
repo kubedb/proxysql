@@ -25,19 +25,19 @@ var defaultDBPort = core.ServicePort{
 	TargetPort: intstr.FromString("db"),
 }
 
-func (c *Controller) ensureService(pxc *api.PerconaXtraDB) (kutil.VerbType, error) {
+func (c *Controller) ensureService(px *api.PerconaXtraDB) (kutil.VerbType, error) {
 	// Check if service name exists
-	if err := c.checkService(pxc, pxc.ServiceName()); err != nil {
+	if err := c.checkService(px, px.ServiceName()); err != nil {
 		return kutil.VerbUnchanged, err
 	}
 
 	// create database Service
-	vt, err := c.createService(pxc)
+	vt, err := c.createService(px)
 	if err != nil {
 		return kutil.VerbUnchanged, err
 	} else if vt != kutil.VerbUnchanged {
 		c.recorder.Eventf(
-			pxc,
+			px,
 			core.EventTypeNormal,
 			eventer.EventReasonSuccessful,
 			"Successfully %s Service",
@@ -47,8 +47,8 @@ func (c *Controller) ensureService(pxc *api.PerconaXtraDB) (kutil.VerbType, erro
 	return vt, nil
 }
 
-func (c *Controller) checkService(pxc *api.PerconaXtraDB, serviceName string) error {
-	service, err := c.Client.CoreV1().Services(pxc.Namespace).Get(serviceName, metav1.GetOptions{})
+func (c *Controller) checkService(px *api.PerconaXtraDB, serviceName string) error {
+	service, err := c.Client.CoreV1().Services(px.Namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		if kerr.IsNotFound(err) {
 			return nil
@@ -57,84 +57,84 @@ func (c *Controller) checkService(pxc *api.PerconaXtraDB, serviceName string) er
 	}
 
 	if service.Labels[api.LabelDatabaseKind] != api.ResourceKindPerconaXtraDB ||
-		service.Labels[api.LabelDatabaseName] != pxc.Name {
-		return fmt.Errorf(`intended service "%v/%v" already exists`, pxc.Namespace, serviceName)
+		service.Labels[api.LabelDatabaseName] != px.Name {
+		return fmt.Errorf(`intended service "%v/%v" already exists`, px.Namespace, serviceName)
 	}
 
 	return nil
 }
 
-func (c *Controller) createService(pxc *api.PerconaXtraDB) (kutil.VerbType, error) {
+func (c *Controller) createService(px *api.PerconaXtraDB) (kutil.VerbType, error) {
 	meta := metav1.ObjectMeta{
-		Name:      pxc.OffshootName(),
-		Namespace: pxc.Namespace,
+		Name:      px.OffshootName(),
+		Namespace: px.Namespace,
 	}
 
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, pxc)
+	ref, rerr := reference.GetReference(clientsetscheme.Scheme, px)
 	if rerr != nil {
 		return kutil.VerbUnchanged, rerr
 	}
 
 	_, ok, err := core_util.CreateOrPatchService(c.Client, meta, func(in *core.Service) *core.Service {
 		core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
-		in.Labels = pxc.XtraDBLabels()
-		in.Annotations = pxc.Spec.ServiceTemplate.Annotations
+		in.Labels = px.XtraDBLabels()
+		in.Annotations = px.Spec.ServiceTemplate.Annotations
 
-		in.Spec.Selector = pxc.XtraDBSelectors()
+		in.Spec.Selector = px.XtraDBSelectors()
 		in.Spec.Ports = ofst.MergeServicePorts(
 			core_util.MergeServicePorts(in.Spec.Ports, []core.ServicePort{defaultDBPort}),
-			pxc.Spec.ServiceTemplate.Spec.Ports,
+			px.Spec.ServiceTemplate.Spec.Ports,
 		)
 
-		if pxc.Spec.ServiceTemplate.Spec.ClusterIP != "" {
-			in.Spec.ClusterIP = pxc.Spec.ServiceTemplate.Spec.ClusterIP
+		if px.Spec.ServiceTemplate.Spec.ClusterIP != "" {
+			in.Spec.ClusterIP = px.Spec.ServiceTemplate.Spec.ClusterIP
 		}
-		if pxc.Spec.ServiceTemplate.Spec.Type != "" {
-			in.Spec.Type = pxc.Spec.ServiceTemplate.Spec.Type
+		if px.Spec.ServiceTemplate.Spec.Type != "" {
+			in.Spec.Type = px.Spec.ServiceTemplate.Spec.Type
 		}
-		in.Spec.ExternalIPs = pxc.Spec.ServiceTemplate.Spec.ExternalIPs
-		in.Spec.LoadBalancerIP = pxc.Spec.ServiceTemplate.Spec.LoadBalancerIP
-		in.Spec.LoadBalancerSourceRanges = pxc.Spec.ServiceTemplate.Spec.LoadBalancerSourceRanges
-		in.Spec.ExternalTrafficPolicy = pxc.Spec.ServiceTemplate.Spec.ExternalTrafficPolicy
-		if pxc.Spec.ServiceTemplate.Spec.HealthCheckNodePort > 0 {
-			in.Spec.HealthCheckNodePort = pxc.Spec.ServiceTemplate.Spec.HealthCheckNodePort
+		in.Spec.ExternalIPs = px.Spec.ServiceTemplate.Spec.ExternalIPs
+		in.Spec.LoadBalancerIP = px.Spec.ServiceTemplate.Spec.LoadBalancerIP
+		in.Spec.LoadBalancerSourceRanges = px.Spec.ServiceTemplate.Spec.LoadBalancerSourceRanges
+		in.Spec.ExternalTrafficPolicy = px.Spec.ServiceTemplate.Spec.ExternalTrafficPolicy
+		if px.Spec.ServiceTemplate.Spec.HealthCheckNodePort > 0 {
+			in.Spec.HealthCheckNodePort = px.Spec.ServiceTemplate.Spec.HealthCheckNodePort
 		}
 		return in
 	})
 	return ok, err
 }
 
-func (c *Controller) ensureStatsService(pxc *api.PerconaXtraDB) (kutil.VerbType, error) {
+func (c *Controller) ensureStatsService(px *api.PerconaXtraDB) (kutil.VerbType, error) {
 	// return if monitoring is not prometheus
-	if pxc.GetMonitoringVendor() != mona.VendorPrometheus {
+	if px.GetMonitoringVendor() != mona.VendorPrometheus {
 		log.Infoln("spec.monitor.agent is not coreos-operator or builtin.")
 		return kutil.VerbUnchanged, nil
 	}
 
 	// Check if statsService name exists
-	if err := c.checkService(pxc, pxc.StatsService().ServiceName()); err != nil {
+	if err := c.checkService(px, px.StatsService().ServiceName()); err != nil {
 		return kutil.VerbUnchanged, err
 	}
 
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, pxc)
+	ref, rerr := reference.GetReference(clientsetscheme.Scheme, px)
 	if rerr != nil {
 		return kutil.VerbUnchanged, rerr
 	}
 
 	// reconcile stats Service
 	meta := metav1.ObjectMeta{
-		Name:      pxc.StatsService().ServiceName(),
-		Namespace: pxc.Namespace,
+		Name:      px.StatsService().ServiceName(),
+		Namespace: px.Namespace,
 	}
 	_, vt, err := core_util.CreateOrPatchService(c.Client, meta, func(in *core.Service) *core.Service {
 		core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
-		in.Labels = pxc.StatsServiceLabels()
-		in.Spec.Selector = pxc.OffshootSelectors()
+		in.Labels = px.StatsServiceLabels()
+		in.Spec.Selector = px.OffshootSelectors()
 		in.Spec.Ports = core_util.MergeServicePorts(in.Spec.Ports, []core.ServicePort{
 			{
 				Name:       api.PrometheusExporterPortName,
 				Protocol:   core.ProtocolTCP,
-				Port:       pxc.Spec.Monitor.Prometheus.Port,
+				Port:       px.Spec.Monitor.Prometheus.Port,
 				TargetPort: intstr.FromString(api.PrometheusExporterPortName),
 			},
 		})
@@ -144,7 +144,7 @@ func (c *Controller) ensureStatsService(pxc *api.PerconaXtraDB) (kutil.VerbType,
 		return kutil.VerbUnchanged, err
 	} else if vt != kutil.VerbUnchanged {
 		c.recorder.Eventf(
-			pxc,
+			px,
 			core.EventTypeNormal,
 			eventer.EventReasonSuccessful,
 			"Successfully %s stats service",
@@ -154,18 +154,17 @@ func (c *Controller) ensureStatsService(pxc *api.PerconaXtraDB) (kutil.VerbType,
 	return vt, nil
 }
 
-func (c *Controller) createPerconaXtraDBGoverningService(pxc *api.PerconaXtraDB) (string, error) {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, pxc)
+func (c *Controller) createPerconaXtraDBGoverningService(px *api.PerconaXtraDB) (string, error) {
+	ref, rerr := reference.GetReference(clientsetscheme.Scheme, px)
 	if rerr != nil {
 		return "", rerr
 	}
 
 	service := &core.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pxc.GoverningServiceName(),
-			Namespace: pxc.Namespace,
-			//Labels:    pxc.OffshootLabels(),
-			Labels: pxc.XtraDBLabels(),
+			Name:      px.GoverningServiceName(),
+			Namespace: px.Namespace,
+			Labels:    px.XtraDBLabels(),
 			// 'tolerate-unready-endpoints' annotation is deprecated.
 			// ref: https://github.com/kubernetes/kubernetes/pull/63742
 			Annotations: map[string]string{
@@ -182,29 +181,29 @@ func (c *Controller) createPerconaXtraDBGoverningService(pxc *api.PerconaXtraDB)
 					Port: api.MySQLNodePort,
 				},
 			},
-			Selector: pxc.XtraDBSelectors(),
+			Selector: px.XtraDBSelectors(),
 		},
 	}
 	core_util.EnsureOwnerReference(&service.ObjectMeta, ref)
 
-	_, err := c.Client.CoreV1().Services(pxc.Namespace).Create(service)
+	_, err := c.Client.CoreV1().Services(px.Namespace).Create(service)
 	if err != nil && !kerr.IsAlreadyExists(err) {
 		return "", err
 	}
 	return service.Name, nil
 }
 
-func (c *Controller) createProxysqlService(pxc *api.PerconaXtraDB) (string, error) {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, pxc)
+func (c *Controller) createProxysqlService(px *api.PerconaXtraDB) (string, error) {
+	ref, rerr := reference.GetReference(clientsetscheme.Scheme, px)
 	if rerr != nil {
 		return "", rerr
 	}
 
 	service := &core.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pxc.ProxysqlServiceName(),
-			Namespace: pxc.Namespace,
-			Labels:    pxc.ProxysqlLabels(),
+			Name:      px.ProxysqlServiceName(),
+			Namespace: px.Namespace,
+			Labels:    px.ProxysqlLabels(),
 			// 'tolerate-unready-endpoints' annotation is deprecated.
 			// ref: https://github.com/kubernetes/kubernetes/pull/63742
 			Annotations: map[string]string{
@@ -221,12 +220,12 @@ func (c *Controller) createProxysqlService(pxc *api.PerconaXtraDB) (string, erro
 					Port: api.ProxysqlMySQLNodePort,
 				},
 			},
-			Selector: pxc.ProxysqlSelectors(),
+			Selector: px.ProxysqlSelectors(),
 		},
 	}
 	core_util.EnsureOwnerReference(&service.ObjectMeta, ref)
 
-	_, err := c.Client.CoreV1().Services(pxc.Namespace).Create(service)
+	_, err := c.Client.CoreV1().Services(px.Namespace).Create(service)
 	if err != nil && !kerr.IsAlreadyExists(err) {
 		return "", err
 	}

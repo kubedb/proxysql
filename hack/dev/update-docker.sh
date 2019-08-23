@@ -70,8 +70,8 @@ echo ""
 if [ "$DB_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing database images" || true
   for db in "${dbversions[@]}"; do
-    ${REPO_ROOT}/hack/docker/percona/${db}/make.sh build
-    ${REPO_ROOT}/hack/docker/percona/${db}/make.sh push
+    ${REPO_ROOT}/hack/docker/percona-xtradb/${db}/make.sh build
+    ${REPO_ROOT}/hack/docker/percona-xtradb/${db}/make.sh push
   done
 fi
 
