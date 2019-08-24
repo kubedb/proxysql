@@ -9,7 +9,7 @@ export MINIKUBE_RUN=0
 export SELF_HOSTED=1
 export ARGS="" # Forward arguments to installer script
 
-REPO_ROOT="$GOPATH/src/kubedb.dev/percona-xtradb"
+REPO_ROOT="$GOPATH/src/kubedb.dev/proxysql"
 INSTALLER_ROOT="$GOPATH/src/github.com/kubedb/installer"
 
 pushd $REPO_ROOT
@@ -124,21 +124,21 @@ env | sort | grep -e KUBEDB* -e APPSCODE*
 echo ""
 
 if [ "$SELF_HOSTED" -eq 1 ]; then
-  echo "${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=percona-xtradb-operator $ARGS"
-  ${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=percona-xtradb-operator ${ARGS}
+  echo "${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=proxysql-operator $ARGS"
+  ${KUBEDB_SCRIPT}deploy/kubedb.sh | bash -s -- --operator-name=proxysql-operator ${ARGS}
 fi
 
 if [ "$MINIKUBE" -eq 1 ]; then
   cat $INSTALLER_ROOT/deploy/validating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
   cat $INSTALLER_ROOT/deploy/mutating-webhook.yaml | $ONESSL envsubst | kubectl apply -f -
   cat $REPO_ROOT/hack/dev/apiregistration.yaml | $ONESSL envsubst | kubectl apply -f -
-#  cat $INSTALLER_ROOT/deploy/psp/percona-xtradb.yaml | $ONESSL envsubst | kubectl apply -f -
+#  cat $INSTALLER_ROOT/deploy/psp/proxysql.yaml | $ONESSL envsubst | kubectl apply -f -
   # Following line may give error if DBVersions CRD already not created
-  cat $INSTALLER_ROOT/deploy/kubedb-catalog/percona-xtradb.yaml | $ONESSL envsubst | kubectl apply -f - || true
+  cat $INSTALLER_ROOT/deploy/kubedb-catalog/proxysql.yaml | $ONESSL envsubst | kubectl apply -f - || true
 
   if [ "$MINIKUBE_RUN" -eq 1 ]; then
     $REPO_ROOT/hack/make.py
-    percona-xtradb-operator run --v=4 \
+    proxysql-operator run --v=4 \
       --secure-port=8443 \
       --enable-status-subresource=true \
       --enable-mutating-webhook=true \

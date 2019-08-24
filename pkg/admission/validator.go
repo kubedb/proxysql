@@ -92,7 +92,7 @@ func (a *PerconaXtraDBValidator) Admit(req *admission.AdmissionRequest) *admissi
 			if err != nil && !kerr.IsNotFound(err) {
 				return hookapi.StatusInternalServerError(err)
 			} else if err == nil && obj.Spec.TerminationPolicy == api.TerminationPolicyDoNotTerminate {
-				return hookapi.StatusBadRequest(fmt.Errorf(`percona-xtradb "%v/%v" can't be paused. To delete, change spec.terminationPolicy`, req.Namespace, req.Name))
+				return hookapi.StatusBadRequest(fmt.Errorf(`proxysql "%v/%v" can't be paused. To delete, change spec.terminationPolicy`, req.Namespace, req.Name))
 			}
 		}
 	default:
@@ -158,12 +158,12 @@ func ValidatePerconaXtraDB(client kubernetes.Interface, extClient cs.Interface, 
 	}
 
 	if px.Spec.Replicas == nil {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone percona-xtradb server, but for percona-xtradb cluster, value must be greater than 0`,
+		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server, but for proxysql cluster, value must be greater than 0`,
 			px.Spec.Replicas)
 	}
 
 	if px.Spec.PXC == nil && *px.Spec.Replicas > api.PerconaXtraDBStandaloneReplicas {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone percona-xtradb server`,
+		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server`,
 			px.Spec.Replicas)
 	}
 
@@ -199,7 +199,7 @@ func ValidatePerconaXtraDB(client kubernetes.Interface, extClient cs.Interface, 
 			}
 		}
 
-		// Check if percona-xtradb Version is deprecated.
+		// Check if proxysql Version is deprecated.
 		// If deprecated, return error
 		pxVersion, err := extClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(px.Spec.Version), metav1.GetOptions{})
 		if err != nil {
@@ -207,7 +207,7 @@ func ValidatePerconaXtraDB(client kubernetes.Interface, extClient cs.Interface, 
 		}
 
 		if pxVersion.Spec.Deprecated {
-			return fmt.Errorf("percona-xtradb %s/%s is using deprecated version %v. Skipped processing", px.Namespace, px.Name, pxVersion.Name)
+			return fmt.Errorf("proxysql %s/%s is using deprecated version %v. Skipped processing", px.Namespace, px.Name, pxVersion.Name)
 		}
 	}
 
@@ -274,8 +274,8 @@ func matchWithDormantDatabase(extClient cs.Interface, px *api.PerconaXtraDB) err
 
 	if !meta_util.Equal(drmnOriginSpec, &originalSpec) {
 		diff := meta_util.Diff(drmnOriginSpec, &originalSpec)
-		log.Errorf("percona-xtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("percona-xtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
+		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
+		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
 	return nil

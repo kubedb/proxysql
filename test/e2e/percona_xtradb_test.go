@@ -15,8 +15,8 @@ import (
 	store "kmodules.xyz/objectstore-api/api/v1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
-	"kubedb.dev/percona-xtradb/test/e2e/framework"
-	"kubedb.dev/percona-xtradb/test/e2e/matcher"
+	"kubedb.dev/proxysql/test/e2e/framework"
+	"kubedb.dev/proxysql/test/e2e/matcher"
 )
 
 const (
@@ -369,7 +369,7 @@ var _ = Describe("PerconaXtraDB", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+										Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -442,7 +442,7 @@ var _ = Describe("PerconaXtraDB", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+										Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -459,7 +459,7 @@ var _ = Describe("PerconaXtraDB", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+										Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -531,7 +531,7 @@ var _ = Describe("PerconaXtraDB", func() {
 							ScriptSource: &api.ScriptSourceSpec{
 								VolumeSource: core.VolumeSource{
 									GitRepo: &core.GitRepoVolumeSource{
-										Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+										Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 										Directory:  ".",
 									},
 								},
@@ -790,7 +790,7 @@ var _ = Describe("PerconaXtraDB", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+									Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 									Directory:  ".",
 								},
 							},
@@ -998,7 +998,7 @@ var _ = Describe("PerconaXtraDB", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+									Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 									Directory:  ".",
 								},
 							},
@@ -1137,7 +1137,7 @@ var _ = Describe("PerconaXtraDB", func() {
 						ScriptSource: &api.ScriptSourceSpec{
 							VolumeSource: core.VolumeSource{
 								GitRepo: &core.GitRepoVolumeSource{
-									Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+									Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 									Directory:  ".",
 								},
 							},

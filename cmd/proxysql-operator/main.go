@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"kmodules.xyz/client-go/logs"
-	"kubedb.dev/percona-xtradb/pkg/cmds"
+	"kubedb.dev/proxysql/pkg/cmds"
 )
 
 func main() {

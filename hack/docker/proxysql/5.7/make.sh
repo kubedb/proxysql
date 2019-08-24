@@ -2,7 +2,7 @@
 set -xeou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT=$GOPATH/src/kubedb.dev/percona-xtradb
+REPO_ROOT=$GOPATH/src/kubedb.dev/proxysql
 
 source "$REPO_ROOT/hack/libbuild/common/lib.sh"
 source "$REPO_ROOT/hack/libbuild/common/kubedb_image.sh"

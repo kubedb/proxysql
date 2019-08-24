@@ -157,7 +157,7 @@ var cases = []struct {
 		false,
 		false,
 	},
-	{"Create Invalid percona-xtradb",
+	{"Create Invalid proxysql",
 		requestKind,
 		"foo",
 		"default",
@@ -350,7 +350,7 @@ func samplePerconaXtraDB() api.PerconaXtraDB {
 				ScriptSource: &api.ScriptSourceSpec{
 					VolumeSource: core.VolumeSource{
 						GitRepo: &core.GitRepoVolumeSource{
-							Repository: "https://kubedb.dev/percona-xtradb-init-scripts.git",
+							Repository: "https://kubedb.dev/proxysql-init-scripts.git",
 							Directory:  ".",
 						},
 					},

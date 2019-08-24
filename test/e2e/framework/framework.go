@@ -48,7 +48,7 @@ func New(
 		kaClient:         kaClient,
 		appCatalogClient: appCatalogClient,
 		stashClient:      stashClient,
-		namespace:        rand.WithUniqSuffix("percona-xtradb"),
+		namespace:        rand.WithUniqSuffix("proxysql"),
 		StorageClass:     storageClass,
 	}
 }
@@ -56,7 +56,7 @@ func New(
 func (f *Framework) Invoke() *Invocation {
 	return &Invocation{
 		Framework: f,
-		app:       rand.WithUniqSuffix("percona-xtradb-e2e"),
+		app:       rand.WithUniqSuffix("proxysql-e2e"),
 	}
 }
 

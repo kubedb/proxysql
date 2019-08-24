@@ -1,4 +1,4 @@
-## percona-xtradb-operator version
+## proxysql-operator version
 
 Prints binary version number.
 
@@ -7,7 +7,7 @@ Prints binary version number.
 Prints binary version number.
 
 ```
-percona-xtradb-operator version [flags]
+proxysql-operator version [flags]
 ```
 
 ### Options
@@ -35,5 +35,5 @@ percona-xtradb-operator version [flags]
 
 ### SEE ALSO
 
-* [percona-xtradb-operator](percona-xtradb-operator.md)	 - 
+* [proxysql-operator](proxysql-operator.md)	 - 
 

@@ -49,7 +49,7 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 	if sc == nil {
 		randPassword := ""
 
-		// if the password starts with "-", it will cause error in bash scripts (in percona-xtradb-tools)
+		// if the password starts with "-", it will cause error in bash scripts (in proxysql-tools)
 		for randPassword = rand.GeneratePassword(); randPassword[0] == '-'; {
 		}
 
@@ -68,7 +68,7 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 		if px.Spec.PXC != nil {
 			randProxysqlPassword := ""
 
-			// if the password starts with "-", it will cause error in bash scripts (in percona-xtradb-tools)
+			// if the password starts with "-", it will cause error in bash scripts (in proxysql-tools)
 			for randProxysqlPassword = rand.GeneratePassword(); randProxysqlPassword[0] == '-'; {
 			}
 
@@ -86,7 +86,7 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 }
 
 // This is done to fix 0.8.0 -> 0.9.0 upgrade due to
-// https://github.com/kubedb/percona-xtradb/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
+// https://github.com/kubedb/proxysql/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
 func (c *Controller) upgradeDatabaseSecret(px *api.PerconaXtraDB) error {
 	meta := metav1.ObjectMeta{
 		Name:      px.Spec.DatabaseSecret.SecretName,

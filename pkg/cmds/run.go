@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/cli"
-	"kubedb.dev/percona-xtradb/pkg/cmds/server"
+	"kubedb.dev/proxysql/pkg/cmds/server"
 )
 
 func NewCmdRun(version string, out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
@@ -21,7 +21,7 @@ func NewCmdRun(version string, out, errOut io.Writer, stopCh <-chan struct{}) *c
 			cli.SendPeriodicAnalytics(c, version)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Infoln("Starting percona-xtradb-server...")
+			log.Infoln("Starting proxysql-server...")
 
 			if err := o.Complete(); err != nil {
 				return err

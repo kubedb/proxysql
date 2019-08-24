@@ -19,7 +19,7 @@ import (
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 	"kubedb.dev/apimachinery/pkg/eventer"
-	validator "kubedb.dev/percona-xtradb/pkg/admission"
+	validator "kubedb.dev/proxysql/pkg/admission"
 )
 
 func (c *Controller) create(px *api.PerconaXtraDB) error {

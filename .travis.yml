@@ -3,7 +3,7 @@ go:
  - 1.x
  - tip
 
-go_import_path: kubedb.dev/percona-xtradb
+go_import_path: kubedb.dev/proxysql
 
 env:
   global:

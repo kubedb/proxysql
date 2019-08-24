@@ -31,10 +31,10 @@ type workloadOptions struct {
 	// db container options
 	conatainerName string
 	image          string
-	cmd            []string // cmd of `percona-xtradb` container
-	args           []string // args of `percona-xtradb` container
+	cmd            []string // cmd of `proxysql` container
+	args           []string // args of `proxysql` container
 	ports          []core.ContainerPort
-	envList        []core.EnvVar // envList of `percona-xtradb` container
+	envList        []core.EnvVar // envList of `proxysql` container
 	volumeMount    []core.VolumeMount
 	configSource   *core.VolumeSource
 
