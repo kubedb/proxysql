@@ -18,7 +18,7 @@ resources:
   type: git
   tags: [cncf]
   source:
-    uri: https://kubedb.dev/percona-xtradb
+    uri: https://kubedb.dev/proxysql
     branch: master
 
 - name: repo-status

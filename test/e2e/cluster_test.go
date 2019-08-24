@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	store "kmodules.xyz/objectstore-api/api/v1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/percona-xtradb/test/e2e/framework"
-	"kubedb.dev/percona-xtradb/test/e2e/matcher"
+	"kubedb.dev/proxysql/test/e2e/framework"
+	"kubedb.dev/proxysql/test/e2e/matcher"
 	stashV1alpha1 "stash.appscode.dev/stash/apis/stash/v1alpha1"
 	stashV1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
 )
@@ -381,7 +381,7 @@ var _ = Describe("PerconaXtraDB cluster Tests", func() {
 		// To run this test,
 		// 1st: Deploy stash latest operator
 		// 2nd: create mysql related tasks and functions either
-		//	 or	from helm chart in `stash.appscode.dev/percona-xtradb/chart/stash-percona-xtradb`
+		//	 or	from helm chart in `stash.appscode.dev/proxysql/chart/stash-proxysql`
 		Context("With Stash/Restic", func() {
 			var bc *stashV1beta1.BackupConfiguration
 			var bs *stashV1beta1.BackupSession

@@ -1,8 +1,8 @@
-To deploy percona-xtradb-operator in self-hosted:
+To deploy proxysql-operator in self-hosted:
 
     $ ./hack/deploy/setup.sh --docker-registry=<docker-registry-name> (--selfhosted)
 
-To run percona-xtradb-operator in local machine to connect minikube:
+To run proxysql-operator in local machine to connect minikube:
 
     $ ./hack/deploy/setup.sh --minikube
 

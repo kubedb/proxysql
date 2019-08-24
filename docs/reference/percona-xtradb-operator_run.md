@@ -1,4 +1,4 @@
-## percona-xtradb-operator run
+## proxysql-operator run
 
 Launch PerconaXtraDB server
 
@@ -7,7 +7,7 @@ Launch PerconaXtraDB server
 Launch PerconaXtraDB server
 
 ```
-percona-xtradb-operator run [flags]
+proxysql-operator run [flags]
 ```
 
 ### Options
@@ -101,5 +101,5 @@ percona-xtradb-operator run [flags]
 
 ### SEE ALSO
 
-* [percona-xtradb-operator](percona-xtradb-operator.md)	 - 
+* [proxysql-operator](proxysql-operator.md)	 - 
 

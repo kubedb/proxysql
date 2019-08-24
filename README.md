@@ -1,12 +1,12 @@
-[![Go Report Card](https://goreportcard.com/badge/kubedb.dev/percona-xtradb)](https://goreportcard.com/report/kubedb.dev/percona-xtradb)
-[![Build Status](https://travis-ci.org/kubedb/percona-xtradb.svg?branch=master)](https://travis-ci.org/kubedb/percona-xtradb)
-[![codecov](https://codecov.io/gh/kubedb/percona-xtradb/branch/master/graph/badge.svg)](https://codecov.io/gh/kubedb/percona-xtradb)
+[![Go Report Card](https://goreportcard.com/badge/kubedb.dev/proxysql)](https://goreportcard.com/report/kubedb.dev/proxysql)
+[![Build Status](https://travis-ci.org/kubedb/proxysql.svg?branch=master)](https://travis-ci.org/kubedb/proxysql)
+[![codecov](https://codecov.io/gh/kubedb/proxysql/branch/master/graph/badge.svg)](https://codecov.io/gh/kubedb/proxysql)
 [![Slack](http://slack.kubernetes.io/badge.svg)](http://slack.kubernetes.io/#kubedb)
 [![mailing list](https://img.shields.io/badge/mailing_list-join-blue.svg)](https://groups.google.com/forum/#!forum/kubedb)
 [![Twitter](https://img.shields.io/twitter/follow/kubedb.svg?style=social&logo=twitter&label=Follow)](https://twitter.com/intent/follow?screen_name=kubedb)
 
-# mysql
-Run MySQL in Kubernetes
+# proxysql
+Run ProxySQL in Kubernetes
 
 ## Installation
 To install KubeDB, please follow the guide [here](https://kubedb.com/docs/latest/setup/install/).

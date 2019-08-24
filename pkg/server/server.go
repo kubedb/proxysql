@@ -23,8 +23,8 @@ import (
 	"kubedb.dev/apimachinery/pkg/admission/dormantdatabase"
 	"kubedb.dev/apimachinery/pkg/admission/namespace"
 	"kubedb.dev/apimachinery/pkg/eventer"
-	pxAdmsn "kubedb.dev/percona-xtradb/pkg/admission"
-	"kubedb.dev/percona-xtradb/pkg/controller"
+	pxAdmsn "kubedb.dev/proxysql/pkg/admission"
+	"kubedb.dev/proxysql/pkg/controller"
 )
 
 const (
@@ -194,7 +194,7 @@ func (c completedConfig) New() (*PerconaXtraDBServer, error) {
 							Kind:       api.ResourceKindPerconaXtraDB,
 						},
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-percona-xtradb-for-webhook-xray",
+							Name:      "test-proxysql-for-webhook-xray",
 							Namespace: "default",
 						},
 						Spec: api.PerconaXtraDBSpec{
@@ -210,7 +210,7 @@ func (c completedConfig) New() (*PerconaXtraDBServer, error) {
 						if e2 == nil {
 							eventer.CreateEventWithLog(
 								kubernetes.NewForConfigOrDie(c.OperatorConfig.ClientConfig),
-								"percona-xtradb-operator",
+								"proxysql-operator",
 								w,
 								core.EventTypeWarning,
 								eventer.EventReasonAdmissionWebhookNotActivated,

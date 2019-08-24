@@ -2,20 +2,20 @@
 set -xeou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT=$GOPATH/src/kubedb.dev/percona-xtradb
+REPO_ROOT=$GOPATH/src/kubedb.dev/proxysql
 
 source "$REPO_ROOT/hack/libbuild/common/lib.sh"
 source "$REPO_ROOT/hack/libbuild/common/kubedb_image.sh"
 
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-kubedb}
 
-IMG="percona-xtradb-cluster"
+IMG="proxysql-cluster"
 
 DB_VERSION="5.7"
 TAG="$DB_VERSION"
 
 build() {
-  pushd "$REPO_ROOT/hack/docker/percona-xtradb/$DB_VERSION"
+  pushd "$REPO_ROOT/hack/docker/proxysql/$DB_VERSION"
 
   # Download Peer-finder
   # ref: peer-finder: https://github.com/kmodules/peer-finder/releases/download/v1.0.1-ac/peer-finder

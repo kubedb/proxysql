@@ -22,7 +22,7 @@ import (
 	discovery_util "kmodules.xyz/client-go/discovery"
 	meta_util "kmodules.xyz/client-go/meta"
 	"kubedb.dev/apimachinery/apis"
-	"kubedb.dev/percona-xtradb/pkg/cmds/server"
+	"kubedb.dev/proxysql/pkg/cmds/server"
 )
 
 func (f *Framework) isApiSvcReady(apiSvcName string) error {

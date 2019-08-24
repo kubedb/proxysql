@@ -1,4 +1,4 @@
-module kubedb.dev/percona-xtradb
+module kubedb.dev/proxysql
 
 go 1.12
 

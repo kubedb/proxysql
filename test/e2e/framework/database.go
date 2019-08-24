@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/client-go/tools/portforward"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/percona-xtradb/pkg/controller"
+	"kubedb.dev/proxysql/pkg/controller"
 )
 
 type KubedbTable struct {

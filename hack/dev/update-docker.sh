@@ -2,7 +2,7 @@
 set -eou pipefail
 
 GOPATH=$(go env GOPATH)
-REPO_ROOT=${GOPATH}/src/kubedb.dev/percona-xtradb
+REPO_ROOT=${GOPATH}/src/kubedb.dev/proxysql
 
 export DB_UPDATE=0
 export TOOLS_UPDATE=0
@@ -70,8 +70,8 @@ echo ""
 if [ "$DB_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing database images" || true
   for db in "${dbversions[@]}"; do
-    ${REPO_ROOT}/hack/docker/percona-xtradb/${db}/make.sh build
-    ${REPO_ROOT}/hack/docker/percona-xtradb/${db}/make.sh push
+    ${REPO_ROOT}/hack/docker/proxysql/${db}/make.sh build
+    ${REPO_ROOT}/hack/docker/proxysql/${db}/make.sh push
   done
 fi
 
@@ -84,8 +84,8 @@ fi
 
 if [ "$OPERATOR_UPDATE" -eq 1 ]; then
   cowsay -f tux "Processing Operator images" || true
-  ${REPO_ROOT}/hack/docker/percona-xtradb-operator/make.sh build
-  ${REPO_ROOT}/hack/docker/percona-xtradb-operator/make.sh push
+  ${REPO_ROOT}/hack/docker/proxysql-operator/make.sh build
+  ${REPO_ROOT}/hack/docker/proxysql-operator/make.sh push
 fi
 
 if [ "$PROXYSQL_UPDATE" -eq 1 ]; then

@@ -11,8 +11,8 @@ import (
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	"kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/clientcmd"
-	"kubedb.dev/percona-xtradb/pkg/controller"
-	"kubedb.dev/percona-xtradb/pkg/server"
+	"kubedb.dev/proxysql/pkg/controller"
+	"kubedb.dev/proxysql/pkg/server"
 )
 
 const defaultEtcdPathPrefix = "/registry/kubedb.com"
@@ -31,7 +31,7 @@ func NewPerconaXtraDBServerOptions(out, errOut io.Writer) *PerconaXtraDBServerOp
 		RecommendedOptions: genericoptions.NewRecommendedOptions(
 			defaultEtcdPathPrefix,
 			server.Codecs.LegacyCodec(admissionv1beta1.SchemeGroupVersion),
-			genericoptions.NewProcessInfo("percona-xtradb-operator", meta.Namespace()),
+			genericoptions.NewProcessInfo("proxysql-operator", meta.Namespace()),
 		),
 		ExtraOptions: NewExtraOptions(),
 		StdOut:       out,

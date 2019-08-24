@@ -160,8 +160,8 @@ func setDefaultsFromDormantDB(extClient cs.Interface, px *api.PerconaXtraDB) err
 
 	if !meta_util.Equal(ddbOriginSpec, &px.Spec) {
 		diff := meta_util.Diff(ddbOriginSpec, &px.Spec)
-		log.Errorf("percona-xtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("percona-xtradb spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
+		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
+		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
 	if _, err := meta_util.GetString(px.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
