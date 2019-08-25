@@ -13,7 +13,7 @@ import (
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
-func (c *Controller) createServiceAccount(db *api.PerconaXtraDB, saName string) error {
+func (c *Controller) createServiceAccount(db *api.ProxySQL, saName string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -34,7 +34,7 @@ func (c *Controller) createServiceAccount(db *api.PerconaXtraDB, saName string) 
 	return err
 }
 
-func (c *Controller) ensureRole(db *api.PerconaXtraDB, name string, pspName string) error {
+func (c *Controller) ensureRole(db *api.ProxySQL, name string, pspName string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -66,7 +66,7 @@ func (c *Controller) ensureRole(db *api.PerconaXtraDB, name string, pspName stri
 	return err
 }
 
-func (c *Controller) createRoleBinding(db *api.PerconaXtraDB, name string) error {
+func (c *Controller) createRoleBinding(db *api.ProxySQL, name string) error {
 	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
 	if rerr != nil {
 		return rerr
@@ -99,8 +99,8 @@ func (c *Controller) createRoleBinding(db *api.PerconaXtraDB, name string) error
 	return err
 }
 
-func (c *Controller) getPolicyNames(db *api.PerconaXtraDB) (string, error) {
-	dbVersion, err := c.ExtClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
+func (c *Controller) getPolicyNames(db *api.ProxySQL) (string, error) {
+	dbVersion, err := c.ExtClient.CatalogV1alpha1().ProxySQLVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -109,26 +109,26 @@ func (c *Controller) getPolicyNames(db *api.PerconaXtraDB) (string, error) {
 	return dbPolicyName, nil
 }
 
-func (c *Controller) ensureRBACStuff(px *api.PerconaXtraDB) error {
-	dbPolicyName, err := c.getPolicyNames(px)
+func (c *Controller) ensureRBACStuff(proxysql *api.ProxySQL) error {
+	dbPolicyName, err := c.getPolicyNames(proxysql)
 	if err != nil {
 		return err
 	}
 
 	// Create New ServiceAccount
-	if err := c.createServiceAccount(px, px.OffshootName()); err != nil {
+	if err := c.createServiceAccount(proxysql, proxysql.OffshootName()); err != nil {
 		if !kerr.IsAlreadyExists(err) {
 			return err
 		}
 	}
 
 	// Create New Role
-	if err := c.ensureRole(px, px.OffshootName(), dbPolicyName); err != nil {
+	if err := c.ensureRole(proxysql, proxysql.OffshootName(), dbPolicyName); err != nil {
 		return err
 	}
 
 	// Create New RoleBinding
-	if err := c.createRoleBinding(px, px.OffshootName()); err != nil {
+	if err := c.createRoleBinding(proxysql, proxysql.OffshootName()); err != nil {
 		return err
 	}
 

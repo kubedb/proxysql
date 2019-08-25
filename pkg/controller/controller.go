@@ -47,10 +47,10 @@ type Controller struct {
 	// labelselector for event-handler of Snapshot, Dormant and Job
 	selector labels.Selector
 
-	// PerconaXtraDB
-	pxQueue    *queue.Worker
-	pxInformer cache.SharedIndexInformer
-	pxLister   api_listers.PerconaXtraDBLister
+	// ProxySQL
+	proxysqlQueue    *queue.Worker
+	proxysqlInformer cache.SharedIndexInformer
+	proxysqlLister   api_listers.ProxySQLLister
 }
 
 var _ amc.Snapshotter = &Controller{}
@@ -84,7 +84,7 @@ func New(
 		cronController: cronController,
 		recorder:       recorder,
 		selector: labels.SelectorFromSet(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+			api.LabelDatabaseKind: api.ResourceKindProxySQL,
 		}),
 	}
 }
@@ -93,8 +93,8 @@ func New(
 func (c *Controller) EnsureCustomResourceDefinitions() error {
 	log.Infoln("Ensuring CustomResourceDefinition...")
 	crds := []*crd_api.CustomResourceDefinition{
-		api.PerconaXtraDB{}.CustomResourceDefinition(),
-		catalog.PerconaXtraDBVersion{}.CustomResourceDefinition(),
+		api.ProxySQL{}.CustomResourceDefinition(),
+		catalog.ProxySQLVersion{}.CustomResourceDefinition(),
 		api.DormantDatabase{}.CustomResourceDefinition(),
 		api.Snapshot{}.CustomResourceDefinition(),
 		appcat.AppBinding{}.CustomResourceDefinition(),
@@ -117,7 +117,7 @@ func (c *Controller) RunControllers(stopCh <-chan struct{}) {
 	c.cronController.StartCron()
 
 	// Watch x  TPR objects
-	c.pxQueue.Run(stopCh)
+	c.proxysqlQueue.Run(stopCh)
 	c.DrmnQueue.Run(stopCh)
 }
 
@@ -184,30 +184,30 @@ func (c *Controller) StartAndRunControllers(stopCh <-chan struct{}) {
 	log.Infoln("Stopping KubeDB controller")
 }
 
-func (c *Controller) pushFailureEvent(px *api.PerconaXtraDB, reason string) {
+func (c *Controller) pushFailureEvent(proxysql *api.ProxySQL, reason string) {
 	c.recorder.Eventf(
-		px,
+		proxysql,
 		core.EventTypeWarning,
 		eventer.EventReasonFailedToStart,
-		`Fail to be ready PerconaXtraDB: "%v". Reason: %v`,
-		px.Name,
+		`Fail to be ready ProxySQL: "%v". Reason: %v`,
+		proxysql.Name,
 		reason,
 	)
 
-	perconaXtraDB, err := util.UpdatePerconaXtraDBStatus(c.ExtClient.KubedbV1alpha1(), px, func(in *api.PerconaXtraDBStatus) *api.PerconaXtraDBStatus {
+	proxysqlUpd, err := util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
 		in.Phase = api.DatabasePhaseFailed
 		in.Reason = reason
-		in.ObservedGeneration = types.NewIntHash(px.Generation, meta_util.GenerationHash(px))
+		in.ObservedGeneration = types.NewIntHash(proxysql.Generation, meta_util.GenerationHash(proxysql))
 		return in
 	}, apis.EnableStatusSubresource)
 
 	if err != nil {
 		c.recorder.Eventf(
-			px,
+			proxysql,
 			core.EventTypeWarning,
 			eventer.EventReasonFailedToUpdate,
 			err.Error(),
 		)
 	}
-	px.Status = perconaXtraDB.Status
+	proxysql.Status = proxysqlUpd.Status
 }

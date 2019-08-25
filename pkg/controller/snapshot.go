@@ -14,7 +14,7 @@ import (
 )
 
 func (c *Controller) GetDatabase(meta metav1.ObjectMeta) (runtime.Object, error) {
-	px, err := c.pxLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (c *Controller) GetDatabase(meta metav1.ObjectMeta) (runtime.Object, error)
 }
 
 func (c *Controller) SetDatabaseStatus(meta metav1.ObjectMeta, phase api.DatabasePhase, reason string) error {
-	px, err := c.pxLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (c *Controller) SetDatabaseStatus(meta metav1.ObjectMeta, phase api.Databas
 }
 
 func (c *Controller) UpsertDatabaseAnnotation(meta metav1.ObjectMeta, annotation map[string]string) error {
-	px, err := c.pxLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (c *Controller) ValidateSnapshot(snapshot *api.Snapshot) error {
 		return fmt.Errorf(`object 'DatabaseName' is missing in '%v'`, snapshot.Spec)
 	}
 
-	if _, err := c.pxLister.PerconaXtraDBs(snapshot.Namespace).Get(databaseName); err != nil {
+	if _, err := c.proxysqlLister.PerconaXtraDBs(snapshot.Namespace).Get(databaseName); err != nil {
 		return err
 	}
 

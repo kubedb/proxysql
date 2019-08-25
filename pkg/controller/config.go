@@ -49,7 +49,7 @@ func (c *OperatorConfig) New() (*Controller, error) {
 		return nil, err
 	}
 
-	recorder := eventer.NewEventRecorder(c.KubeClient, "PerconaXtraDB operator")
+	recorder := eventer.NewEventRecorder(c.KubeClient, "ProxySQL operator")
 
 	ctrl := New(
 		c.ClientConfig,

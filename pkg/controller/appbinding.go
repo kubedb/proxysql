@@ -20,7 +20,7 @@ import (
 	"kubedb.dev/apimachinery/pkg/eventer"
 )
 
-func (c *Controller) ensureAppBinding(db *api.PerconaXtraDB) (kutil.VerbType, error) {
+func (c *Controller) ensureAppBinding(db *api.ProxySQL) (kutil.VerbType, error) {
 	appmeta := db.AppBindingMeta()
 
 	meta := metav1.ObjectMeta{
@@ -33,27 +33,9 @@ func (c *Controller) ensureAppBinding(db *api.PerconaXtraDB) (kutil.VerbType, er
 		return kutil.VerbUnchanged, err
 	}
 
-	var peers []string
-	for i := 0; i < int(*db.Spec.Replicas); i += 1 {
-		peers = append(peers, db.PeerName(i))
-	}
-
-	garbdCnfJson, err := json.Marshal(config_api.GaleraArbitratorConfiguration{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: config_api.SchemeGroupVersion.String(),
-			Kind:       config_api.ResourceKindGaleraArbitratorConfiguration,
-		},
-		Address:   fmt.Sprintf("gcomm://%s", strings.Join(peers, ",")),
-		Group:     db.Name,
-		SSTMethod: config_api.GarbdXtrabackupSSTMethod,
-	})
+	proxysqlVersion, err := c.ExtClient.CatalogV1alpha1().ProxySQLVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
 	if err != nil {
-		return kutil.VerbUnchanged, err
-	}
-
-	pxVersion, err := c.ExtClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(db.Spec.Version), metav1.GetOptions{})
-	if err != nil {
-		return kutil.VerbUnchanged, fmt.Errorf("failed to get PerconaXtraDBVersion %v for %v/%v. Reason: %v", db.Spec.Version, db.Namespace, db.Name, err)
+		return kutil.VerbUnchanged, fmt.Errorf("failed to get ProxySQLVersion %v for %v/%v. Reason: %v", db.Spec.Version, db.Namespace, db.Name, err)
 	}
 
 	_, vt, err := appcat_util.CreateOrPatchAppBinding(c.AppCatalogClient, meta, func(in *appcat.AppBinding) *appcat.AppBinding {
@@ -61,7 +43,7 @@ func (c *Controller) ensureAppBinding(db *api.PerconaXtraDB) (kutil.VerbType, er
 		in.Labels = db.OffshootLabels()
 
 		in.Spec.Type = appmeta.Type()
-		in.Spec.Version = pxVersion.Spec.Version
+		in.Spec.Version = proxysqlVersion.Spec.Version
 		in.Spec.ClientConfig.URL = types.StringP(fmt.Sprintf("tcp(%s:%d)/", db.ServiceName(), defaultDBPort.Port))
 		in.Spec.ClientConfig.Service = &appcat.ServiceReference{
 			Scheme: "mysql",
@@ -72,11 +54,7 @@ func (c *Controller) ensureAppBinding(db *api.PerconaXtraDB) (kutil.VerbType, er
 		in.Spec.ClientConfig.InsecureSkipTLSVerify = false
 
 		in.Spec.Secret = &core.LocalObjectReference{
-			Name: db.Spec.DatabaseSecret.SecretName,
-		}
-
-		in.Spec.Parameters = &runtime.RawExtension{
-			Raw: garbdCnfJson,
+			Name: db.Spec.ProxySQLSecret.SecretName,
 		}
 
 		return in

@@ -15,34 +15,34 @@ import (
 const (
 	mysqlUser = "root"
 
-	KeyPerconaXtraDBUser     = "username"
-	KeyPerconaXtraDBPassword = "password"
+	KeyProxySQLUser     = "username"
+	KeyProxySQLPassword = "password"
 )
 
-func (c *Controller) ensureDatabaseSecret(px *api.PerconaXtraDB) error {
-	if px.Spec.DatabaseSecret == nil {
-		secretVolumeSource, err := c.createDatabaseSecret(px)
+func (c *Controller) ensureDatabaseSecret(proxysql *api.ProxySQL) error {
+	if proxysql.Spec.ProxySQLSecret == nil {
+		secretVolumeSource, err := c.createDatabaseSecret(proxysql)
 		if err != nil {
 			return err
 		}
 
-		per, _, err := util.PatchPerconaXtraDB(c.ExtClient.KubedbV1alpha1(), px, func(in *api.PerconaXtraDB) *api.PerconaXtraDB {
-			in.Spec.DatabaseSecret = secretVolumeSource
+		proxysqlPathced, _, err := util.PatchProxySQL(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQL) *api.ProxySQL {
+			in.Spec.ProxySQLSecret = secretVolumeSource
 			return in
 		})
 		if err != nil {
 			return err
 		}
-		px.Spec.DatabaseSecret = per.Spec.DatabaseSecret
+		proxysql.Spec.ProxySQLSecret = proxysqlPathced.Spec.ProxySQLSecret
 		return nil
 	}
-	return c.upgradeDatabaseSecret(px)
+	return c.upgradeDatabaseSecret(proxysql)
 }
 
-func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVolumeSource, error) {
-	authSecretName := px.Name + "-auth"
+func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretVolumeSource, error) {
+	authSecretName := proxysql.Name + "-auth"
 
-	sc, err := c.checkSecret(authSecretName, px)
+	sc, err := c.checkSecret(authSecretName, proxysql)
 	if err != nil {
 		return nil, err
 	}
@@ -56,16 +56,16 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 		secret := &core.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   authSecretName,
-				Labels: px.OffshootSelectors(),
+				Labels: proxysql.OffshootSelectors(),
 			},
 			Type: core.SecretTypeOpaque,
 			StringData: map[string]string{
-				KeyPerconaXtraDBUser:     mysqlUser,
-				KeyPerconaXtraDBPassword: randPassword,
+				KeyProxySQLUser:     mysqlUser,
+				KeyProxySQLPassword: randPassword,
 			},
 		}
 
-		if px.Spec.PXC != nil {
+		if proxysql.Spec.PXC != nil {
 			randProxysqlPassword := ""
 
 			// if the password starts with "-", it will cause error in bash scripts (in proxysql-tools)
@@ -76,7 +76,7 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 			secret.StringData[api.ProxysqlPassword] = randProxysqlPassword
 		}
 
-		if _, err := c.Client.CoreV1().Secrets(px.Namespace).Create(secret); err != nil {
+		if _, err := c.Client.CoreV1().Secrets(proxysql.Namespace).Create(secret); err != nil {
 			return nil, err
 		}
 	}
@@ -87,16 +87,16 @@ func (c *Controller) createDatabaseSecret(px *api.PerconaXtraDB) (*core.SecretVo
 
 // This is done to fix 0.8.0 -> 0.9.0 upgrade due to
 // https://github.com/kubedb/proxysql/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
-func (c *Controller) upgradeDatabaseSecret(px *api.PerconaXtraDB) error {
+func (c *Controller) upgradeDatabaseSecret(proxysql *api.ProxySQL) error {
 	meta := metav1.ObjectMeta{
-		Name:      px.Spec.DatabaseSecret.SecretName,
-		Namespace: px.Namespace,
+		Name:      proxysql.Spec.ProxySQLSecret.SecretName,
+		Namespace: proxysql.Namespace,
 	}
 
 	_, _, err := core_util.CreateOrPatchSecret(c.Client, meta, func(in *core.Secret) *core.Secret {
-		if _, ok := in.Data[KeyPerconaXtraDBUser]; !ok {
+		if _, ok := in.Data[KeyProxySQLUser]; !ok {
 			if val, ok2 := in.Data["user"]; ok2 {
-				in.StringData = map[string]string{KeyPerconaXtraDBUser: string(val)}
+				in.StringData = map[string]string{KeyProxySQLUser: string(val)}
 			}
 		}
 		return in
@@ -104,8 +104,8 @@ func (c *Controller) upgradeDatabaseSecret(px *api.PerconaXtraDB) error {
 	return err
 }
 
-func (c *Controller) checkSecret(secretName string, px *api.PerconaXtraDB) (*core.Secret, error) {
-	secret, err := c.Client.CoreV1().Secrets(px.Namespace).Get(secretName, metav1.GetOptions{})
+func (c *Controller) checkSecret(secretName string, proxysql *api.ProxySQL) (*core.Secret, error) {
+	secret, err := c.Client.CoreV1().Secrets(proxysql.Namespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		if kerr.IsNotFound(err) {
 			return nil, nil
@@ -113,9 +113,9 @@ func (c *Controller) checkSecret(secretName string, px *api.PerconaXtraDB) (*cor
 		return nil, err
 	}
 
-	if secret.Labels[api.LabelDatabaseKind] != api.ResourceKindPerconaXtraDB ||
-		secret.Labels[api.LabelDatabaseName] != px.Name {
-		return nil, fmt.Errorf(`intended secret "%v/%v" already exists`, px.Namespace, secretName)
+	if secret.Labels[api.LabelDatabaseKind] != api.ResourceKindProxySQL ||
+		secret.Labels[api.LabelDatabaseName] != proxysql.Name {
+		return nil, fmt.Errorf(`intended secret "%v/%v" already exists`, proxysql.Namespace, secretName)
 	}
 	return secret, nil
 }

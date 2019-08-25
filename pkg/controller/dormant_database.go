@@ -18,7 +18,7 @@ import (
 
 // WaitUntilPaused is an Interface of *amc.Controller
 func (c *Controller) WaitUntilPaused(drmn *api.DormantDatabase) error {
-	db := &api.PerconaXtraDB{
+	db := &api.ProxySQL{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      drmn.OffshootName(),
 			Namespace: drmn.Namespace,
@@ -40,9 +40,9 @@ func (c *Controller) WaitUntilPaused(drmn *api.DormantDatabase) error {
 	return nil
 }
 
-func (c *Controller) waitUntilRBACStuffDeleted(px *api.PerconaXtraDB) error {
+func (c *Controller) waitUntilRBACStuffDeleted(proxysql *api.ProxySQL) error {
 	// Delete ServiceAccount
-	if err := core_util.WaitUntillServiceAccountDeleted(c.Client, px.ObjectMeta); err != nil {
+	if err := core_util.WaitUntillServiceAccountDeleted(c.Client, proxysql.ObjectMeta); err != nil {
 		return err
 	}
 
@@ -77,9 +77,9 @@ func (c *Controller) wipeOutDatabase(meta metav1.ObjectMeta, secrets []string, r
 		ref)
 }
 
-func (c *Controller) deleteMatchingDormantDatabase(px *api.PerconaXtraDB) error {
+func (c *Controller) deleteMatchingDormantDatabase(proxysql *api.ProxySQL) error {
 	// Check if DormantDatabase exists or not
-	ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(px.Namespace).Get(px.Name, metav1.GetOptions{})
+	ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
 	if err != nil {
 		if !kerr.IsNotFound(err) {
 			return err
@@ -96,7 +96,7 @@ func (c *Controller) deleteMatchingDormantDatabase(px *api.PerconaXtraDB) error 
 	}
 
 	// Delete  Matching dormantDatabase
-	if err := c.ExtClient.KubedbV1alpha1().DormantDatabases(px.Namespace).Delete(px.Name,
+	if err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Delete(proxysql.Name,
 		meta_util.DeleteInBackground()); err != nil && !kerr.IsNotFound(err) {
 		return err
 	}
@@ -104,26 +104,26 @@ func (c *Controller) deleteMatchingDormantDatabase(px *api.PerconaXtraDB) error 
 	return nil
 }
 
-func (c *Controller) createDormantDatabase(px *api.PerconaXtraDB) (*api.DormantDatabase, error) {
+func (c *Controller) createDormantDatabase(proxysql *api.ProxySQL) (*api.DormantDatabase, error) {
 	dormantDb := &api.DormantDatabase{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      px.Name,
-			Namespace: px.Namespace,
+			Name:      proxysql.Name,
+			Namespace: proxysql.Namespace,
 			Labels: map[string]string{
-				api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+				api.LabelDatabaseKind: api.ResourceKindProxySQL,
 			},
 		},
 		Spec: api.DormantDatabaseSpec{
 			Origin: api.Origin{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:              px.Name,
-					Namespace:         px.Namespace,
-					Labels:            px.Labels,
-					Annotations:       px.Annotations,
-					CreationTimestamp: px.CreationTimestamp,
+					Name:              proxysql.Name,
+					Namespace:         proxysql.Namespace,
+					Labels:            proxysql.Labels,
+					Annotations:       proxysql.Annotations,
+					CreationTimestamp: proxysql.CreationTimestamp,
 				},
 				Spec: api.OriginSpec{
-					PerconaXtraDB: &px.Spec,
+					ProxySQL: &proxysql.Spec,
 				},
 			},
 		},
@@ -137,17 +137,17 @@ func (c *Controller) createDormantDatabase(px *api.PerconaXtraDB) (*api.DormantD
 func (c *Controller) secretsUsedByPeers(meta metav1.ObjectMeta) (sets.String, error) {
 	secretUsed := sets.NewString()
 
-	dbList, err := c.pxLister.PerconaXtraDBs(meta.Namespace).List(labels.Everything())
+	dbList, err := c.proxysqlLister.ProxySQLs(meta.Namespace).List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	for _, px := range dbList {
-		if px.Name != meta.Name {
-			secretUsed.Insert(px.Spec.GetSecrets()...)
+	for _, proxysql := range dbList {
+		if proxysql.Name != meta.Name {
+			secretUsed.Insert(proxysql.Spec.GetSecrets()...)
 		}
 	}
 	labelMap := map[string]string{
-		api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+		api.LabelDatabaseKind: api.ResourceKindProxySQL,
 	}
 	drmnList, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(meta.Namespace).List(
 		metav1.ListOptions{

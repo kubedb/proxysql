@@ -17,7 +17,7 @@ import (
 
 const defaultEtcdPathPrefix = "/registry/kubedb.com"
 
-type PerconaXtraDBServerOptions struct {
+type ProxySQLServerOptions struct {
 	RecommendedOptions *genericoptions.RecommendedOptions
 	ExtraOptions       *ExtraOptions
 
@@ -25,8 +25,8 @@ type PerconaXtraDBServerOptions struct {
 	StdErr io.Writer
 }
 
-func NewPerconaXtraDBServerOptions(out, errOut io.Writer) *PerconaXtraDBServerOptions {
-	o := &PerconaXtraDBServerOptions{
+func NewProxySQLServerOptions(out, errOut io.Writer) *ProxySQLServerOptions {
+	o := &ProxySQLServerOptions{
 		// TODO we will nil out the etcd storage options.  This requires a later level of k8s.io/apiserver
 		RecommendedOptions: genericoptions.NewRecommendedOptions(
 			defaultEtcdPathPrefix,
@@ -43,20 +43,20 @@ func NewPerconaXtraDBServerOptions(out, errOut io.Writer) *PerconaXtraDBServerOp
 	return o
 }
 
-func (o PerconaXtraDBServerOptions) AddFlags(fs *pflag.FlagSet) {
+func (o ProxySQLServerOptions) AddFlags(fs *pflag.FlagSet) {
 	o.RecommendedOptions.AddFlags(fs)
 	o.ExtraOptions.AddFlags(fs)
 }
 
-func (o PerconaXtraDBServerOptions) Validate(args []string) error {
+func (o ProxySQLServerOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o *PerconaXtraDBServerOptions) Complete() error {
+func (o *ProxySQLServerOptions) Complete() error {
 	return nil
 }
 
-func (o PerconaXtraDBServerOptions) Config() (*server.PerconaXtraDBServerConfig, error) {
+func (o ProxySQLServerOptions) Config() (*server.ProxySQLServerConfig, error) {
 	// TODO have a "real" external address
 	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
@@ -73,7 +73,7 @@ func (o PerconaXtraDBServerOptions) Config() (*server.PerconaXtraDBServerConfig,
 		return nil, err
 	}
 
-	config := &server.PerconaXtraDBServerConfig{
+	config := &server.ProxySQLServerConfig{
 		GenericConfig:  serverConfig,
 		ExtraConfig:    server.ExtraConfig{},
 		OperatorConfig: controllerConfig,
@@ -81,7 +81,7 @@ func (o PerconaXtraDBServerOptions) Config() (*server.PerconaXtraDBServerConfig,
 	return config, nil
 }
 
-func (o PerconaXtraDBServerOptions) Run(stopCh <-chan struct{}) error {
+func (o ProxySQLServerOptions) Run(stopCh <-chan struct{}) error {
 	config, err := o.Config()
 	if err != nil {
 		return err

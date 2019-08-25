@@ -22,28 +22,28 @@ import (
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 )
 
-// PerconaXtraDBMutator implements the AdmissionHook interface to mutate the PerconaXtraDB resources
-type PerconaXtraDBMutator struct {
+// ProxySQLMutator implements the AdmissionHook interface to mutate the ProxySQL resources
+type ProxySQLMutator struct {
 	client      kubernetes.Interface
 	extClient   cs.Interface
 	lock        sync.RWMutex
 	initialized bool
 }
 
-var _ hookapi.AdmissionHook = &PerconaXtraDBMutator{}
+var _ hookapi.AdmissionHook = &ProxySQLMutator{}
 
 // Resource is the resource to use for hosting mutating admission webhook.
-func (a *PerconaXtraDBMutator) Resource() (plural schema.GroupVersionResource, singular string) {
+func (a *ProxySQLMutator) Resource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "mutators.kubedb.com",
 			Version:  "v1alpha1",
-			Resource: "perconaxtradbmutators",
+			Resource: "proxysqlmutators",
 		},
-		"perconaxtradbmutator"
+		"proxysqlmutator"
 }
 
 // Initialize is called as a post-start hook
-func (a *PerconaXtraDBMutator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
+func (a *ProxySQLMutator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -61,14 +61,14 @@ func (a *PerconaXtraDBMutator) Initialize(config *rest.Config, stopCh <-chan str
 
 // Admit is called to decide whether to accept the admission request.
 // The returned response may use the Patch field to mutate the object.
-func (a *PerconaXtraDBMutator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
+func (a *ProxySQLMutator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
 	status := &admission.AdmissionResponse{}
 
 	// N.B.: No Mutating for delete
 	if (req.Operation != admission.Create && req.Operation != admission.Update) ||
 		len(req.SubResource) != 0 ||
 		req.Kind.Group != api.SchemeGroupVersion.Group ||
-		req.Kind.Kind != api.ResourceKindPerconaXtraDB {
+		req.Kind.Kind != api.ResourceKindProxySQL {
 		status.Allowed = true
 		return status
 	}
@@ -82,11 +82,11 @@ func (a *PerconaXtraDBMutator) Admit(req *admission.AdmissionRequest) *admission
 	if err != nil {
 		return hookapi.StatusBadRequest(err)
 	}
-	perconaxtradbMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.PerconaXtraDB).DeepCopy())
+	proxysqlMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.ProxySQL).DeepCopy())
 	if err != nil {
 		return hookapi.StatusForbidden(err)
-	} else if perconaxtradbMod != nil {
-		patch, err := meta_util.CreateJSONPatch(req.Object.Raw, perconaxtradbMod)
+	} else if proxysqlMod != nil {
+		patch, err := meta_util.CreateJSONPatch(req.Object.Raw, proxysqlMod)
 		if err != nil {
 			return hookapi.StatusInternalServerError(err)
 		}
@@ -100,28 +100,28 @@ func (a *PerconaXtraDBMutator) Admit(req *admission.AdmissionRequest) *admission
 }
 
 // setDefaultValues provides the defaulting that is performed in mutating stage of creating/updating a MySQL database
-func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, px *api.PerconaXtraDB) (runtime.Object, error) {
-	if px.Spec.Version == "" {
+func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, proxysql *api.ProxySQL) (runtime.Object, error) {
+	if proxysql.Spec.Version == "" {
 		return nil, errors.New(`'spec.version' is missing`)
 	}
 
-	px.SetDefaults()
+	proxysql.SetDefaults()
 
-	if err := setDefaultsFromDormantDB(extClient, px); err != nil {
+	if err := setDefaultsFromDormantDB(extClient, proxysql); err != nil {
 		return nil, err
 	}
 
 	// If monitoring spec is given without port,
 	// set default Listening port
-	setMonitoringPort(px)
+	setMonitoringPort(proxysql)
 
-	return px, nil
+	return proxysql, nil
 }
 
 // setDefaultsFromDormantDB takes values from Similar Dormant Database
-func setDefaultsFromDormantDB(extClient cs.Interface, px *api.PerconaXtraDB) error {
+func setDefaultsFromDormantDB(extClient cs.Interface, proxysql *api.ProxySQL) error {
 	// Check if DormantDatabase exists or not
-	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(px.Namespace).Get(px.Name, metav1.GetOptions{})
+	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
 	if err != nil {
 		if !kerr.IsNotFound(err) {
 			return err
@@ -130,44 +130,44 @@ func setDefaultsFromDormantDB(extClient cs.Interface, px *api.PerconaXtraDB) err
 	}
 
 	// Check DatabaseKind
-	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindPerconaXtraDB {
-		return errors.New(fmt.Sprintf(`invalid PerconaXtraDB: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, px.Namespace, px.Name, dormantDb.Namespace, dormantDb.Name))
+	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindProxySQL {
+		return errors.New(fmt.Sprintf(`invalid ProxySQL: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, proxysql.Namespace, proxysql.Name, dormantDb.Namespace, dormantDb.Name))
 	}
 
 	// Check Origin Spec
-	ddbOriginSpec := dormantDb.Spec.Origin.Spec.PerconaXtraDB
+	ddbOriginSpec := dormantDb.Spec.Origin.Spec.ProxySQL
 	ddbOriginSpec.SetDefaults()
 
 	// If DatabaseSecret of new object is not given,
 	// Take dormantDatabaseSecretName
-	if px.Spec.DatabaseSecret == nil {
-		px.Spec.DatabaseSecret = ddbOriginSpec.DatabaseSecret
+	if proxysql.Spec.DatabaseSecret == nil {
+		proxysql.Spec.DatabaseSecret = ddbOriginSpec.DatabaseSecret
 	}
 
 	// If Monitoring Spec of new object is not given,
 	// Take Monitoring Settings from Dormant
-	if px.Spec.Monitor == nil {
-		px.Spec.Monitor = ddbOriginSpec.Monitor
+	if proxysql.Spec.Monitor == nil {
+		proxysql.Spec.Monitor = ddbOriginSpec.Monitor
 	} else {
-		ddbOriginSpec.Monitor = px.Spec.Monitor
+		ddbOriginSpec.Monitor = proxysql.Spec.Monitor
 	}
 
 	// Skip checking UpdateStrategy
-	ddbOriginSpec.UpdateStrategy = px.Spec.UpdateStrategy
+	ddbOriginSpec.UpdateStrategy = proxysql.Spec.UpdateStrategy
 
 	// Skip checking TerminationPolicy
-	ddbOriginSpec.TerminationPolicy = px.Spec.TerminationPolicy
+	ddbOriginSpec.TerminationPolicy = proxysql.Spec.TerminationPolicy
 
-	if !meta_util.Equal(ddbOriginSpec, &px.Spec) {
-		diff := meta_util.Diff(ddbOriginSpec, &px.Spec)
+	if !meta_util.Equal(ddbOriginSpec, &proxysql.Spec) {
+		diff := meta_util.Diff(ddbOriginSpec, &proxysql.Spec)
 		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
 		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
-	if _, err := meta_util.GetString(px.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
-		px.Spec.Init != nil &&
-		(px.Spec.Init.SnapshotSource != nil || px.Spec.Init.StashRestoreSession != nil) {
-		px.Annotations = core_util.UpsertMap(px.Annotations, map[string]string{
+	if _, err := meta_util.GetString(proxysql.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
+		proxysql.Spec.Init != nil &&
+		(proxysql.Spec.Init.SnapshotSource != nil || proxysql.Spec.Init.StashRestoreSession != nil) {
+		proxysql.Annotations = core_util.UpsertMap(proxysql.Annotations, map[string]string{
 			api.AnnotationInitialized: "",
 		})
 	}
@@ -179,14 +179,14 @@ func setDefaultsFromDormantDB(extClient cs.Interface, px *api.PerconaXtraDB) err
 
 // Assign Default Monitoring Port if MonitoringSpec Exists
 // and the AgentVendor is Prometheus.
-func setMonitoringPort(px *api.PerconaXtraDB) {
-	if px.Spec.Monitor != nil &&
-		px.GetMonitoringVendor() == mona.VendorPrometheus {
-		if px.Spec.Monitor.Prometheus == nil {
-			px.Spec.Monitor.Prometheus = &mona.PrometheusSpec{}
+func setMonitoringPort(proxysql *api.ProxySQL) {
+	if proxysql.Spec.Monitor != nil &&
+		proxysql.GetMonitoringVendor() == mona.VendorPrometheus {
+		if proxysql.Spec.Monitor.Prometheus == nil {
+			proxysql.Spec.Monitor.Prometheus = &mona.PrometheusSpec{}
 		}
-		if px.Spec.Monitor.Prometheus.Port == 0 {
-			px.Spec.Monitor.Prometheus.Port = api.PrometheusExporterPortNumber
+		if proxysql.Spec.Monitor.Prometheus.Port == 0 {
+			proxysql.Spec.Monitor.Prometheus.Port = api.PrometheusExporterPortNumber
 		}
 	}
 }
