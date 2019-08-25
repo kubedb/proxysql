@@ -36,6 +36,8 @@ type PerconaXtraDBExpansion interface{}
 
 type PostgresExpansion interface{}
 
+type ProxySQLExpansion interface{}
+
 type RedisExpansion interface{}
 
 type SnapshotExpansion interface{}
