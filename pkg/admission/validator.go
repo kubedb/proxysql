@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/appscode/go/log"
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
@@ -108,14 +107,14 @@ func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.Ad
 			}
 
 			proxysql := obj.(*api.ProxySQL).DeepCopy()
-			oldPXC := oldObject.(*api.ProxySQL).DeepCopy()
-			oldPXC.SetDefaults()
+			oldProxysql := oldObject.(*api.ProxySQL).DeepCopy()
+			oldProxysql.SetDefaults()
 			// Allow changing Database Secret only if there was no secret have set up yet.
-			if oldPXC.Spec.DatabaseSecret == nil {
-				oldPXC.Spec.DatabaseSecret = proxysql.Spec.DatabaseSecret
+			if oldProxysql.Spec.ProxySQLSecret == nil {
+				oldProxysql.Spec.ProxySQLSecret = proxysql.Spec.ProxySQLSecret
 			}
 
-			if err := validateUpdate(proxysql, oldPXC, req.Kind.Kind); err != nil {
+			if err := validateUpdate(proxysql, oldProxysql, req.Kind.Kind); err != nil {
 				return hookapi.StatusBadRequest(fmt.Errorf("%v", err))
 			}
 		}
@@ -130,16 +129,7 @@ func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.Ad
 
 // validatePXC checks whether the configurations for ProxySQL Cluster are ok
 func validatePXC(proxysql *api.ProxySQL) error {
-	if proxysql.Spec.PXC != nil {
-		if len(proxysql.Name) > api.ProxySQLMaxClusterNameLength {
-			return errors.Errorf(`'spec.proxysql.clusterName' "%s" shouldn't have more than %d characters'`,
-				proxysql.Name, api.ProxySQLMaxClusterNameLength)
-		}
-		if *proxysql.Spec.PXC.Proxysql.Replicas != 1 {
-			return errors.Errorf(`'spec.proxysql.proxysql.replicas' "%v" is invalid. Currently, supported replicas for proxysql is 1`,
-				proxysql.Spec.PXC.Proxysql.Replicas)
-		}
-	}
+
 
 	return nil
 }
@@ -150,11 +140,10 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 	if proxysql.Spec.Version == "" {
 		return errors.New(`'spec.version' is missing`)
 	}
-	if proxysqlVersion, err := extClient.CatalogV1alpha1().ProxySQLVersions().Get(string(proxysql.Spec.Version), metav1.GetOptions{}); err != nil {
+	var proxysqlVersion api.ProxySQLVersion
+	var err error
+	if proxysqlVersion, err = extClient.CatalogV1alpha1().ProxySQLVersions().Get(string(proxysql.Spec.Version), metav1.GetOptions{}); err != nil {
 		return err
-	} else if proxysql.Spec.PXC != nil && proxysqlVersion.Spec.Version != api.ProxySQLClusterRecommendedVersion {
-		return errors.Errorf("unsupported version for xtradb cluster, recommended version is %s",
-			api.ProxySQLClusterRecommendedVersion)
 	}
 
 	if proxysql.Spec.Replicas == nil {
@@ -162,21 +151,12 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 			proxysql.Spec.Replicas)
 	}
 
-	if proxysql.Spec.PXC == nil && *proxysql.Spec.Replicas > api.ProxySQLStandaloneReplicas {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server`,
+	if *proxysql.Spec.Replicas != 1 {
+		return errors.Errorf(`'.spec.replicas' "%v" is invalid. Currently, supported replicas for proxysql is 1`,
 			proxysql.Spec.Replicas)
 	}
 
-	if proxysql.Spec.PXC != nil && *proxysql.Spec.Replicas < api.ProxySQLDefaultClusterSize {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be %d for xtradb cluster`,
-			proxysql.Spec.Replicas, api.ProxySQLDefaultClusterSize)
-	}
-
-	if err := validatePXC(proxysql); err != nil {
-		return err
-	}
-
-	if err := amv.ValidateEnvVar(proxysql.Spec.PodTemplate.Spec.Env, forbiddenEnvVars, api.ResourceKindProxySQL); err != nil {
+	if err = amv.ValidateEnvVar(proxysql.Spec.PodTemplate.Spec.Env, forbiddenEnvVars, api.ResourceKindProxySQL); err != nil {
 		return err
 	}
 
@@ -186,36 +166,24 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 	if proxysql.Spec.StorageType != api.StorageTypeDurable && proxysql.Spec.StorageType != api.StorageTypeEphemeral {
 		return fmt.Errorf(`'spec.storageType' %s is invalid`, proxysql.Spec.StorageType)
 	}
-	if err := amv.ValidateStorage(client, proxysql.Spec.StorageType, proxysql.Spec.Storage); err != nil {
+	if err = amv.ValidateStorage(client, proxysql.Spec.StorageType, proxysql.Spec.Storage); err != nil {
 		return err
 	}
 
-	databaseSecret := proxysql.Spec.DatabaseSecret
+	proxysqlSecret := proxysql.Spec.ProxySQLSecret
 
 	if strictValidation {
-		if databaseSecret != nil {
-			if _, err := client.CoreV1().Secrets(proxysql.Namespace).Get(databaseSecret.SecretName, metav1.GetOptions{}); err != nil {
+		if proxysqlSecret != nil {
+			if _, err = client.CoreV1().Secrets(proxysql.Namespace).Get(proxysqlSecret.SecretName, metav1.GetOptions{}); err != nil {
 				return err
 			}
 		}
 
 		// Check if proxysql Version is deprecated.
 		// If deprecated, return error
-		proxysqlVersion, err := extClient.CatalogV1alpha1().ProxySQLVersions().Get(string(proxysql.Spec.Version), metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
 		if proxysqlVersion.Spec.Deprecated {
 			return fmt.Errorf("proxysql %s/%s is using deprecated version %v. Skipped processing", proxysql.Namespace, proxysql.Name, proxysqlVersion.Name)
 		}
-	}
-
-	if proxysql.Spec.Init != nil &&
-		proxysql.Spec.Init.SnapshotSource != nil &&
-		databaseSecret == nil {
-		return fmt.Errorf("for Snapshot init, 'spec.databaseSecret.secretName' of %v/%v needs to be similar to older database of snapshot %v/%v",
-			proxysql.Namespace, proxysql.Name, proxysql.Spec.Init.SnapshotSource.Namespace, proxysql.Spec.Init.SnapshotSource.Name)
 	}
 
 	if proxysql.Spec.UpdateStrategy.Type == "" {
@@ -232,50 +200,9 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 
 	monitorSpec := proxysql.Spec.Monitor
 	if monitorSpec != nil {
-		if err := amv.ValidateMonitorSpec(monitorSpec); err != nil {
+		if err = amv.ValidateMonitorSpec(monitorSpec); err != nil {
 			return err
 		}
-	}
-
-	if err := matchWithDormantDatabase(extClient, proxysql); err != nil {
-		return err
-	}
-	return nil
-}
-
-func matchWithDormantDatabase(extClient cs.Interface, proxysql *api.ProxySQL) error {
-	// Check if DormantDatabase exists or not
-	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
-	if err != nil {
-		if !kerr.IsNotFound(err) {
-			return err
-		}
-		return nil
-	}
-
-	// Check DatabaseKind
-	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindProxySQL {
-		return errors.New(fmt.Sprintf(`invalid ProxySQL: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, proxysql.Namespace, proxysql.Name, dormantDb.Namespace, dormantDb.Name))
-	}
-
-	// Check Origin Spec
-	drmnOriginSpec := dormantDb.Spec.Origin.Spec.ProxySQL
-	drmnOriginSpec.SetDefaults()
-	originalSpec := proxysql.Spec
-
-	// Skip checking UpdateStrategy
-	drmnOriginSpec.UpdateStrategy = originalSpec.UpdateStrategy
-
-	// Skip checking TerminationPolicy
-	drmnOriginSpec.TerminationPolicy = originalSpec.TerminationPolicy
-
-	// Skip checking Monitoring
-	drmnOriginSpec.Monitor = originalSpec.Monitor
-
-	if !meta_util.Equal(drmnOriginSpec, &originalSpec) {
-		diff := meta_util.Diff(drmnOriginSpec, &originalSpec)
-		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
 	return nil

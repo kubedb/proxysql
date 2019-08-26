@@ -1,20 +1,14 @@
 package admission
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/appscode/go/log"
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
-	kerr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	kutil "kmodules.xyz/client-go"
-	core_util "kmodules.xyz/client-go/core/v1"
 	meta_util "kmodules.xyz/client-go/meta"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
@@ -107,74 +101,11 @@ func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, proxy
 
 	proxysql.SetDefaults()
 
-	if err := setDefaultsFromDormantDB(extClient, proxysql); err != nil {
-		return nil, err
-	}
-
 	// If monitoring spec is given without port,
 	// set default Listening port
 	setMonitoringPort(proxysql)
 
 	return proxysql, nil
-}
-
-// setDefaultsFromDormantDB takes values from Similar Dormant Database
-func setDefaultsFromDormantDB(extClient cs.Interface, proxysql *api.ProxySQL) error {
-	// Check if DormantDatabase exists or not
-	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
-	if err != nil {
-		if !kerr.IsNotFound(err) {
-			return err
-		}
-		return nil
-	}
-
-	// Check DatabaseKind
-	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindProxySQL {
-		return errors.New(fmt.Sprintf(`invalid ProxySQL: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, proxysql.Namespace, proxysql.Name, dormantDb.Namespace, dormantDb.Name))
-	}
-
-	// Check Origin Spec
-	ddbOriginSpec := dormantDb.Spec.Origin.Spec.ProxySQL
-	ddbOriginSpec.SetDefaults()
-
-	// If DatabaseSecret of new object is not given,
-	// Take dormantDatabaseSecretName
-	if proxysql.Spec.DatabaseSecret == nil {
-		proxysql.Spec.DatabaseSecret = ddbOriginSpec.DatabaseSecret
-	}
-
-	// If Monitoring Spec of new object is not given,
-	// Take Monitoring Settings from Dormant
-	if proxysql.Spec.Monitor == nil {
-		proxysql.Spec.Monitor = ddbOriginSpec.Monitor
-	} else {
-		ddbOriginSpec.Monitor = proxysql.Spec.Monitor
-	}
-
-	// Skip checking UpdateStrategy
-	ddbOriginSpec.UpdateStrategy = proxysql.Spec.UpdateStrategy
-
-	// Skip checking TerminationPolicy
-	ddbOriginSpec.TerminationPolicy = proxysql.Spec.TerminationPolicy
-
-	if !meta_util.Equal(ddbOriginSpec, &proxysql.Spec) {
-		diff := meta_util.Diff(ddbOriginSpec, &proxysql.Spec)
-		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
-	}
-
-	if _, err := meta_util.GetString(proxysql.Annotations, api.AnnotationInitialized); err == kutil.ErrNotFound &&
-		proxysql.Spec.Init != nil &&
-		(proxysql.Spec.Init.SnapshotSource != nil || proxysql.Spec.Init.StashRestoreSession != nil) {
-		proxysql.Annotations = core_util.UpsertMap(proxysql.Annotations, map[string]string{
-			api.AnnotationInitialized: "",
-		})
-	}
-
-	// Delete  Matching dormantDatabase in Controller
-
-	return nil
 }
 
 // Assign Default Monitoring Port if MonitoringSpec Exists

@@ -3,7 +3,6 @@ package controller
 import (
 	"github.com/pkg/errors"
 	core "k8s.io/api/core/v1"
-	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -11,9 +10,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	core_util "kmodules.xyz/client-go/core/v1"
 	dynamic_util "kmodules.xyz/client-go/dynamic"
-	meta_util "kmodules.xyz/client-go/meta"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	cs_util "kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
 
 // WaitUntilPaused is an Interface of *amc.Controller
@@ -77,60 +74,60 @@ func (c *Controller) wipeOutDatabase(meta metav1.ObjectMeta, secrets []string, r
 		ref)
 }
 
-func (c *Controller) deleteMatchingDormantDatabase(proxysql *api.ProxySQL) error {
-	// Check if DormantDatabase exists or not
-	ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
-	if err != nil {
-		if !kerr.IsNotFound(err) {
-			return err
-		}
-		return nil
-	}
+//func (c *Controller) deleteMatchingDormantDatabase(proxysql *api.ProxySQL) error {
+//	// Check if DormantDatabase exists or not
+//	ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
+//	if err != nil {
+//		if !kerr.IsNotFound(err) {
+//			return err
+//		}
+//		return nil
+//	}
+//
+//	// Set WipeOut to false
+//	if _, _, err := cs_util.PatchDormantDatabase(c.ExtClient.KubedbV1alpha1(), ddb, func(in *api.DormantDatabase) *api.DormantDatabase {
+//		in.Spec.WipeOut = false
+//		return in
+//	}); err != nil {
+//		return err
+//	}
+//
+//	// Delete  Matching dormantDatabase
+//	if err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Delete(proxysql.Name,
+//		meta_util.DeleteInBackground()); err != nil && !kerr.IsNotFound(err) {
+//		return err
+//	}
+//
+//	return nil
+//}
 
-	// Set WipeOut to false
-	if _, _, err := cs_util.PatchDormantDatabase(c.ExtClient.KubedbV1alpha1(), ddb, func(in *api.DormantDatabase) *api.DormantDatabase {
-		in.Spec.WipeOut = false
-		return in
-	}); err != nil {
-		return err
-	}
-
-	// Delete  Matching dormantDatabase
-	if err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Delete(proxysql.Name,
-		meta_util.DeleteInBackground()); err != nil && !kerr.IsNotFound(err) {
-		return err
-	}
-
-	return nil
-}
-
-func (c *Controller) createDormantDatabase(proxysql *api.ProxySQL) (*api.DormantDatabase, error) {
-	dormantDb := &api.DormantDatabase{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      proxysql.Name,
-			Namespace: proxysql.Namespace,
-			Labels: map[string]string{
-				api.LabelDatabaseKind: api.ResourceKindProxySQL,
-			},
-		},
-		Spec: api.DormantDatabaseSpec{
-			Origin: api.Origin{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              proxysql.Name,
-					Namespace:         proxysql.Namespace,
-					Labels:            proxysql.Labels,
-					Annotations:       proxysql.Annotations,
-					CreationTimestamp: proxysql.CreationTimestamp,
-				},
-				Spec: api.OriginSpec{
-					ProxySQL: &proxysql.Spec,
-				},
-			},
-		},
-	}
-
-	return c.ExtClient.KubedbV1alpha1().DormantDatabases(dormantDb.Namespace).Create(dormantDb)
-}
+//func (c *Controller) createDormantDatabase(proxysql *api.ProxySQL) (*api.DormantDatabase, error) {
+//	dormantDb := &api.DormantDatabase{
+//		ObjectMeta: metav1.ObjectMeta{
+//			Name:      proxysql.Name,
+//			Namespace: proxysql.Namespace,
+//			Labels: map[string]string{
+//				api.LabelDatabaseKind: api.ResourceKindProxySQL,
+//			},
+//		},
+//		Spec: api.DormantDatabaseSpec{
+//			Origin: api.Origin{
+//				ObjectMeta: metav1.ObjectMeta{
+//					Name:              proxysql.Name,
+//					Namespace:         proxysql.Namespace,
+//					Labels:            proxysql.Labels,
+//					Annotations:       proxysql.Annotations,
+//					CreationTimestamp: proxysql.CreationTimestamp,
+//				},
+//				Spec: api.OriginSpec{
+//					ProxySQL: &proxysql.Spec,
+//				},
+//			},
+//		},
+//	}
+//
+//	return c.ExtClient.KubedbV1alpha1().DormantDatabases(dormantDb.Namespace).Create(dormantDb)
+//}
 
 // isSecretUsed gets the DBList of same kind, then checks if our required secret is used by those.
 // Similarly, isSecretUsed also checks for DomantDB of similar dbKind label.

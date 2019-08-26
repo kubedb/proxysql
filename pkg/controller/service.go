@@ -19,10 +19,10 @@ import (
 )
 
 var defaultDBPort = core.ServicePort{
-	Name:       "db",
+	Name:       "mysql",
 	Protocol:   core.ProtocolTCP,
-	Port:       3306,
-	TargetPort: intstr.FromString("db"),
+	Port:       api.ProxysqlMySQLNodePort,
+	TargetPort: intstr.FromInt(api.ProxysqlMySQLNodePort),
 }
 
 func (c *Controller) ensureService(proxysql *api.ProxySQL) (kutil.VerbType, error) {
@@ -57,7 +57,7 @@ func (c *Controller) checkService(proxysql *api.ProxySQL, serviceName string) er
 	}
 
 	if service.Labels[api.LabelDatabaseKind] != api.ResourceKindProxySQL ||
-		service.Labels[api.LabelDatabaseName] != proxysql.Name {
+		service.Labels[api.LabelProxySQLName] != proxysql.Name {
 		return fmt.Errorf(`intended service "%v/%v" already exists`, proxysql.Namespace, serviceName)
 	}
 
@@ -77,10 +77,10 @@ func (c *Controller) createService(proxysql *api.ProxySQL) (kutil.VerbType, erro
 
 	_, ok, err := core_util.CreateOrPatchService(c.Client, meta, func(in *core.Service) *core.Service {
 		core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
-		in.Labels = proxysql.XtraDBLabels()
+		in.Labels = proxysql.OffshootLabels()
 		in.Annotations = proxysql.Spec.ServiceTemplate.Annotations
 
-		in.Spec.Selector = proxysql.XtraDBSelectors()
+		in.Spec.Selector = proxysql.OffshootSelectors()
 		in.Spec.Ports = ofst.MergeServicePorts(
 			core_util.MergeServicePorts(in.Spec.Ports, []core.ServicePort{defaultDBPort}),
 			proxysql.Spec.ServiceTemplate.Spec.Ports,
@@ -152,82 +152,4 @@ func (c *Controller) ensureStatsService(proxysql *api.ProxySQL) (kutil.VerbType,
 		)
 	}
 	return vt, nil
-}
-
-func (c *Controller) createProxySQLGoverningService(proxysql *api.ProxySQL) (string, error) {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
-	if rerr != nil {
-		return "", rerr
-	}
-
-	service := &core.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      proxysql.GoverningServiceName(),
-			Namespace: proxysql.Namespace,
-			Labels:    proxysql.XtraDBLabels(),
-			// 'tolerate-unready-endpoints' annotation is deprecated.
-			// ref: https://github.com/kubernetes/kubernetes/pull/63742
-			Annotations: map[string]string{
-				"service.alpha.kubernetes.io/tolerate-unready-endpoints": "true",
-			},
-		},
-		Spec: core.ServiceSpec{
-			Type:                     core.ServiceTypeClusterIP,
-			ClusterIP:                core.ClusterIPNone,
-			PublishNotReadyAddresses: true,
-			Ports: []core.ServicePort{
-				{
-					Name: "db",
-					Port: api.MySQLNodePort,
-				},
-			},
-			Selector: proxysql.XtraDBSelectors(),
-		},
-	}
-	core_util.EnsureOwnerReference(&service.ObjectMeta, ref)
-
-	_, err := c.Client.CoreV1().Services(proxysql.Namespace).Create(service)
-	if err != nil && !kerr.IsAlreadyExists(err) {
-		return "", err
-	}
-	return service.Name, nil
-}
-
-func (c *Controller) createProxysqlService(proxysql *api.ProxySQL) (string, error) {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
-	if rerr != nil {
-		return "", rerr
-	}
-
-	service := &core.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      proxysql.ProxysqlServiceName(),
-			Namespace: proxysql.Namespace,
-			Labels:    proxysql.ProxysqlLabels(),
-			// 'tolerate-unready-endpoints' annotation is deprecated.
-			// ref: https://github.com/kubernetes/kubernetes/pull/63742
-			Annotations: map[string]string{
-				"service.alpha.kubernetes.io/tolerate-unready-endpoints": "true",
-			},
-		},
-		Spec: core.ServiceSpec{
-			Type:                     core.ServiceTypeClusterIP,
-			ClusterIP:                core.ClusterIPNone,
-			PublishNotReadyAddresses: true,
-			Ports: []core.ServicePort{
-				{
-					Name: "mysql",
-					Port: api.ProxysqlMySQLNodePort,
-				},
-			},
-			Selector: proxysql.ProxysqlSelectors(),
-		},
-	}
-	core_util.EnsureOwnerReference(&service.ObjectMeta, ref)
-
-	_, err := c.Client.CoreV1().Services(proxysql.Namespace).Create(service)
-	if err != nil && !kerr.IsAlreadyExists(err) {
-		return "", err
-	}
-	return service.Name, nil
 }

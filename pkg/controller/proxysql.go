@@ -36,10 +36,10 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return nil
 	}
 
-	// Delete Matching DormantDatabase if exists any
-	if err := c.deleteMatchingDormantDatabase(proxysql); err != nil {
-		return fmt.Errorf(`failed to delete dormant Database : "%v/%v". Reason: %v`, proxysql.Namespace, proxysql.Name, err)
-	}
+	//// Delete Matching DormantDatabase if exists any
+	//if err := c.deleteMatchingDormantDatabase(proxysql); err != nil {
+	//	return fmt.Errorf(`failed to delete dormant Database : "%v/%v". Reason: %v`, proxysql.Namespace, proxysql.Name, err)
+	//}
 
 	if proxysql.Status.Phase == "" {
 		proxysqlUpd, err := util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
@@ -53,11 +53,9 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 	}
 
 	// create Governing Service
-	governingService, err := c.createProxySQLGoverningService(proxysql)
-	if err != nil {
-		return fmt.Errorf(`failed to create Service: "%v/%v". Reason: %v`, proxysql.Namespace, governingService, err)
+	if err := c.CreateGoverningService(c.GoverningService, proxysql.Namespace); err != nil {
+		return err
 	}
-	c.GoverningService = governingService
 
 	if c.EnableRBAC {
 		// Ensure ClusterRoles for statefulsets
@@ -76,7 +74,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return err
 	}
 
-	// ensure database StatefulSet
+	// ensure proxysql StatefulSet
 	vt2, err := c.ensureProxySQLNode(proxysql)
 	if err != nil {
 		return err
@@ -155,23 +153,23 @@ func (c *Controller) terminate(proxysql *api.ProxySQL) error {
 			return err
 		}
 
-		if _, err := c.createDormantDatabase(proxysql); err != nil {
-			if kerr.IsAlreadyExists(err) {
-				// if already exists, check if it is database of another Kind and return error in that case.
-				// If the Kind is same, we can safely assume that the DormantDB was not deleted in before,
-				// Probably because, User is more faster (create-delete-create-again-delete...) than operator!
-				// So reuse that DormantDB!
-				ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				if val, _ := meta_util.GetStringValue(ddb.Labels, api.LabelDatabaseKind); val != api.ResourceKindProxySQL {
-					return fmt.Errorf(`DormantDatabase "%v" of kind %v already exists`, proxysql.Name, val)
-				}
-			} else {
-				return fmt.Errorf(`failed to create DormantDatabase: "%v/%v". Reason: %v`, proxysql.Namespace, proxysql.Name, err)
-			}
-		}
+		//if _, err := c.createDormantDatabase(proxysql); err != nil {
+		//	if kerr.IsAlreadyExists(err) {
+		//		// if already exists, check if it is database of another Kind and return error in that case.
+		//		// If the Kind is same, we can safely assume that the DormantDB was not deleted in before,
+		//		// Probably because, User is more faster (create-delete-create-again-delete...) than operator!
+		//		// So reuse that DormantDB!
+		//		ddb, err := c.ExtClient.KubedbV1alpha1().DormantDatabases(proxysql.Namespace).Get(proxysql.Name, metav1.GetOptions{})
+		//		if err != nil {
+		//			return err
+		//		}
+		//		if val, _ := meta_util.GetStringValue(ddb.Labels, api.LabelDatabaseKind); val != api.ResourceKindProxySQL {
+		//			return fmt.Errorf(`DormantDatabase "%v" of kind %v already exists`, proxysql.Name, val)
+		//		}
+		//	} else {
+		//		return fmt.Errorf(`failed to create DormantDatabase: "%v/%v". Reason: %v`, proxysql.Namespace, proxysql.Name, err)
+		//	}
+		//}
 	} else {
 		// If TerminationPolicy is "wipeOut", delete everything (ie, PVCs,Secrets,Snapshots).
 		// If TerminationPolicy is "delete", delete PVCs and keep snapshots,secrets intact.
@@ -198,27 +196,27 @@ func (c *Controller) setOwnerReferenceToOffshoots(proxysql *api.ProxySQL, ref *c
 	// If TerminationPolicy is "wipeOut", delete snapshots and secrets,
 	// else, keep it intact.
 	if proxysql.Spec.TerminationPolicy == api.TerminationPolicyWipeOut {
-		if err := dynamic_util.EnsureOwnerReferenceForSelector(
-			c.DynamicClient,
-			api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
-			proxysql.Namespace,
-			selector,
-			ref); err != nil {
-			return err
-		}
+		//if err := dynamic_util.EnsureOwnerReferenceForSelector(
+		//	c.DynamicClient,
+		//	api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
+		//	proxysql.Namespace,
+		//	selector,
+		//	ref); err != nil {
+		//	return err
+		//}
 		if err := c.wipeOutDatabase(proxysql.ObjectMeta, proxysql.Spec.GetSecrets(), ref); err != nil {
 			return errors.Wrap(err, "error in wiping out database.")
 		}
 	} else {
 		// Make sure snapshot and secret's ownerreference is removed.
-		if err := dynamic_util.RemoveOwnerReferenceForSelector(
-			c.DynamicClient,
-			api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
-			proxysql.Namespace,
-			selector,
-			ref); err != nil {
-			return err
-		}
+		//if err := dynamic_util.RemoveOwnerReferenceForSelector(
+		//	c.DynamicClient,
+		//	api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
+		//	proxysql.Namespace,
+		//	selector,
+		//	ref); err != nil {
+		//	return err
+		//}
 		if err := dynamic_util.RemoveOwnerReferenceForItems(
 			c.DynamicClient,
 			core.SchemeGroupVersion.WithResource("secrets"),
@@ -241,14 +239,14 @@ func (c *Controller) removeOwnerReferenceFromOffshoots(proxysql *api.ProxySQL, r
 	// First, Get LabelSelector for Other Components
 	labelSelector := labels.SelectorFromSet(proxysql.OffshootSelectors())
 
-	if err := dynamic_util.RemoveOwnerReferenceForSelector(
-		c.DynamicClient,
-		api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
-		proxysql.Namespace,
-		labelSelector,
-		ref); err != nil {
-		return err
-	}
+	//if err := dynamic_util.RemoveOwnerReferenceForSelector(
+	//	c.DynamicClient,
+	//	api.SchemeGroupVersion.WithResource(api.ResourcePluralSnapshot),
+	//	proxysql.Namespace,
+	//	labelSelector,
+	//	ref); err != nil {
+	//	return err
+	//}
 	if err := dynamic_util.RemoveOwnerReferenceForSelector(
 		c.DynamicClient,
 		core.SchemeGroupVersion.WithResource("persistentvolumeclaims"),

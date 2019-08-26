@@ -7,13 +7,12 @@ import (
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	core_util "kmodules.xyz/client-go/core/v1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
 
 const (
-	mysqlUser = "root"
+	proxysqlUser = "proxysql"
 
 	KeyProxySQLUser     = "username"
 	KeyProxySQLPassword = "password"
@@ -34,9 +33,9 @@ func (c *Controller) ensureDatabaseSecret(proxysql *api.ProxySQL) error {
 			return err
 		}
 		proxysql.Spec.ProxySQLSecret = proxysqlPathced.Spec.ProxySQLSecret
-		return nil
 	}
-	return c.upgradeDatabaseSecret(proxysql)
+
+	return nil
 }
 
 func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretVolumeSource, error) {
@@ -47,10 +46,10 @@ func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretV
 		return nil, err
 	}
 	if sc == nil {
-		randPassword := ""
+		randProxysqlPassword := ""
 
 		// if the password starts with "-", it will cause error in bash scripts (in proxysql-tools)
-		for randPassword = rand.GeneratePassword(); randPassword[0] == '-'; {
+		for randProxysqlPassword = rand.GeneratePassword(); randProxysqlPassword[0] == '-'; {
 		}
 
 		secret := &core.Secret{
@@ -60,20 +59,9 @@ func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretV
 			},
 			Type: core.SecretTypeOpaque,
 			StringData: map[string]string{
-				KeyProxySQLUser:     mysqlUser,
-				KeyProxySQLPassword: randPassword,
+				api.ProxysqlUserKey:     proxysqlUser,
+				api.ProxysqlPasswordKey: randProxysqlPassword,
 			},
-		}
-
-		if proxysql.Spec.PXC != nil {
-			randProxysqlPassword := ""
-
-			// if the password starts with "-", it will cause error in bash scripts (in proxysql-tools)
-			for randProxysqlPassword = rand.GeneratePassword(); randProxysqlPassword[0] == '-'; {
-			}
-
-			secret.StringData[api.ProxysqlUser] = "proxysql"
-			secret.StringData[api.ProxysqlPassword] = randProxysqlPassword
 		}
 
 		if _, err := c.Client.CoreV1().Secrets(proxysql.Namespace).Create(secret); err != nil {
@@ -83,25 +71,6 @@ func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretV
 	return &core.SecretVolumeSource{
 		SecretName: authSecretName,
 	}, nil
-}
-
-// This is done to fix 0.8.0 -> 0.9.0 upgrade due to
-// https://github.com/kubedb/proxysql/pull/115/files#diff-10ddaf307bbebafda149db10a28b9c24R17 commit
-func (c *Controller) upgradeDatabaseSecret(proxysql *api.ProxySQL) error {
-	meta := metav1.ObjectMeta{
-		Name:      proxysql.Spec.ProxySQLSecret.SecretName,
-		Namespace: proxysql.Namespace,
-	}
-
-	_, _, err := core_util.CreateOrPatchSecret(c.Client, meta, func(in *core.Secret) *core.Secret {
-		if _, ok := in.Data[KeyProxySQLUser]; !ok {
-			if val, ok2 := in.Data["user"]; ok2 {
-				in.StringData = map[string]string{KeyProxySQLUser: string(val)}
-			}
-		}
-		return in
-	})
-	return err
 }
 
 func (c *Controller) checkSecret(secretName string, proxysql *api.ProxySQL) (*core.Secret, error) {
@@ -114,7 +83,7 @@ func (c *Controller) checkSecret(secretName string, proxysql *api.ProxySQL) (*co
 	}
 
 	if secret.Labels[api.LabelDatabaseKind] != api.ResourceKindProxySQL ||
-		secret.Labels[api.LabelDatabaseName] != proxysql.Name {
+		secret.Labels[api.LabelProxySQLName] != proxysql.Name {
 		return nil, fmt.Errorf(`intended secret "%v/%v" already exists`, proxysql.Namespace, secretName)
 	}
 	return secret, nil
