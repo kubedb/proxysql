@@ -38,6 +38,8 @@ type Interface interface {
 	PerconaXtraDBVersions() PerconaXtraDBVersionInformer
 	// PostgresVersions returns a PostgresVersionInformer.
 	PostgresVersions() PostgresVersionInformer
+	// ProxySQLVersions returns a ProxySQLVersionInformer.
+	ProxySQLVersions() ProxySQLVersionInformer
 	// RedisVersions returns a RedisVersionInformer.
 	RedisVersions() RedisVersionInformer
 }
@@ -86,6 +88,11 @@ func (v *version) PerconaXtraDBVersions() PerconaXtraDBVersionInformer {
 // PostgresVersions returns a PostgresVersionInformer.
 func (v *version) PostgresVersions() PostgresVersionInformer {
 	return &postgresVersionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ProxySQLVersions returns a ProxySQLVersionInformer.
+func (v *version) ProxySQLVersions() ProxySQLVersionInformer {
+	return &proxySQLVersionInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // RedisVersions returns a RedisVersionInformer.

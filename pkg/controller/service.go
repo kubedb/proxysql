@@ -21,8 +21,8 @@ import (
 var defaultDBPort = core.ServicePort{
 	Name:       "mysql",
 	Protocol:   core.ProtocolTCP,
-	Port:       api.ProxysqlMySQLNodePort,
-	TargetPort: intstr.FromInt(api.ProxysqlMySQLNodePort),
+	Port:       api.ProxySQLMySQLNodePort,
+	TargetPort: intstr.FromInt(api.ProxySQLMySQLNodePort),
 }
 
 func (c *Controller) ensureService(proxysql *api.ProxySQL) (kutil.VerbType, error) {

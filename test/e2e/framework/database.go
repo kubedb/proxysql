@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/client-go/tools/portforward"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/proxysql/pkg/controller"
 )
 
 type KubedbTable struct {
@@ -50,11 +49,11 @@ func (f *Framework) getPerconaXtraDBClient(meta metav1.ObjectMeta, tunnel *portf
 	var userErr, passErr error
 
 	if !proxysql {
-		user, userErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBUser)
-		pass, passErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBPassword)
+		//user, userErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBUser)
+		//pass, passErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBPassword)
 	} else {
-		user, userErr = f.GetMySQLCred(px, api.ProxysqlUser)
-		pass, passErr = f.GetMySQLCred(px, api.ProxysqlPassword)
+		user, userErr = f.GetMySQLCred(px, api.ProxySQLUserKey)
+		pass, passErr = f.GetMySQLCred(px, api.ProxySQLPasswordKey)
 	}
 	if userErr != nil {
 		return nil, userErr

@@ -12,15 +12,13 @@ import (
 )
 
 const (
-	proxysqlUser = "proxysql"
-
-	KeyProxySQLUser     = "username"
-	KeyProxySQLPassword = "password"
+	proxysqlUser     = "proxysql"
+	MySQLPasswordKey = "password"
 )
 
-func (c *Controller) ensureDatabaseSecret(proxysql *api.ProxySQL) error {
+func (c *Controller) ensureProxySQLSecret(proxysql *api.ProxySQL) error {
 	if proxysql.Spec.ProxySQLSecret == nil {
-		secretVolumeSource, err := c.createDatabaseSecret(proxysql)
+		secretVolumeSource, err := c.createProxySQLSecret(proxysql)
 		if err != nil {
 			return err
 		}
@@ -38,7 +36,7 @@ func (c *Controller) ensureDatabaseSecret(proxysql *api.ProxySQL) error {
 	return nil
 }
 
-func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretVolumeSource, error) {
+func (c *Controller) createProxySQLSecret(proxysql *api.ProxySQL) (*core.SecretVolumeSource, error) {
 	authSecretName := proxysql.Name + "-auth"
 
 	sc, err := c.checkSecret(authSecretName, proxysql)
@@ -59,8 +57,8 @@ func (c *Controller) createDatabaseSecret(proxysql *api.ProxySQL) (*core.SecretV
 			},
 			Type: core.SecretTypeOpaque,
 			StringData: map[string]string{
-				api.ProxysqlUserKey:     proxysqlUser,
-				api.ProxysqlPasswordKey: randProxysqlPassword,
+				api.ProxySQLUserKey:     proxysqlUser,
+				api.ProxySQLPasswordKey: randProxysqlPassword,
 			},
 		}
 

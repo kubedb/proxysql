@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 	meta_util "kmodules.xyz/client-go/meta"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
+	catalog_api "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 	amv "kubedb.dev/apimachinery/pkg/validator"
@@ -43,9 +44,9 @@ func (a *ProxySQLValidator) Resource() (plural schema.GroupVersionResource, sing
 	return schema.GroupVersionResource{
 			Group:    "validators.kubedb.com",
 			Version:  "v1alpha1",
-			Resource: "ProxySQLvalidators",
+			Resource: "proxysqlvalidators",
 		},
-		"ProxySQLvalidator"
+		"proxysqlvalidator"
 }
 
 // Initialize is called as a post-start hook
@@ -130,7 +131,6 @@ func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.Ad
 // validatePXC checks whether the configurations for ProxySQL Cluster are ok
 func validatePXC(proxysql *api.ProxySQL) error {
 
-
 	return nil
 }
 
@@ -140,7 +140,7 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 	if proxysql.Spec.Version == "" {
 		return errors.New(`'spec.version' is missing`)
 	}
-	var proxysqlVersion api.ProxySQLVersion
+	var proxysqlVersion *catalog_api.ProxySQLVersion
 	var err error
 	if proxysqlVersion, err = extClient.CatalogV1alpha1().ProxySQLVersions().Get(string(proxysql.Spec.Version), metav1.GetOptions{}); err != nil {
 		return err

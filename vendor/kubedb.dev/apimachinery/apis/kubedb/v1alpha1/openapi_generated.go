@@ -18641,6 +18641,12 @@ func schema_apimachinery_apis_kubedb_v1alpha1_ProxySQLBackendSpec(ref common.Ref
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
+					"ref": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Ref lets one to locate the typed referenced object (in our case, it is the backend database object) inside the same namespace.",
+							Ref:         ref("k8s.io/api/core/v1.TypedLocalObjectReference"),
+						},
+					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Number of backend servers.",
@@ -18658,6 +18664,8 @@ func schema_apimachinery_apis_kubedb_v1alpha1_ProxySQLBackendSpec(ref common.Ref
 				},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.TypedLocalObjectReference"},
 	}
 }
 
@@ -18727,7 +18735,7 @@ func schema_apimachinery_apis_kubedb_v1alpha1_ProxySQLSpec(ref common.ReferenceC
 							Format:      "int32",
 						},
 					},
-					"configureFor": {
+					"mode": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Mode specifies the type of MySQL/Percona-XtraDB/MariaDB cluster for which proxysql will be configured. It must be either \"Galera\" or \"GroupReplication\"",
 							Type:        []string{"string"},

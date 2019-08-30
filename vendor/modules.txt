@@ -747,7 +747,6 @@ k8s.io/client-go/util/retry
 k8s.io/client-go/tools/record/util
 k8s.io/client-go/tools/watch
 k8s.io/client-go/util/workqueue
-k8s.io/client-go/util/jsonpath
 k8s.io/client-go/tools/portforward
 k8s.io/client-go/transport/spdy
 k8s.io/client-go/pkg/apis/clientauthentication
@@ -833,7 +832,6 @@ k8s.io/client-go/plugin/pkg/client/auth/gcp
 k8s.io/client-go/plugin/pkg/client/auth/oidc
 k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/listers/batch/v1
-k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/listers/admissionregistration/v1beta1
 k8s.io/client-go/listers/auditregistration/v1alpha1
 k8s.io/client-go/tools/clientcmd/api/v1
@@ -865,6 +863,8 @@ k8s.io/client-go/listers/settings/v1alpha1
 k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
 k8s.io/client-go/listers/storage/v1beta1
+k8s.io/client-go/util/jsonpath
+k8s.io/client-go/third_party/forked/golang/template
 # k8s.io/component-base v0.0.0-20190424053038-9fe063da3132 => k8s.io/component-base v0.0.0-20190314000054-4a91899592f4
 k8s.io/component-base/cli/flag
 # k8s.io/klog v0.3.1 => k8s.io/klog v0.3.0
@@ -912,7 +912,6 @@ kmodules.xyz/client-go/policy/v1beta1
 kmodules.xyz/custom-resources/client/clientset/versioned/scheme
 kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1
 kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1
-kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1/util
 kmodules.xyz/custom-resources/apis/appcatalog
 kmodules.xyz/custom-resources/client/clientset/versioned
 # kmodules.xyz/monitoring-agent-api v0.0.0-20190808150221-601a4005b7f7
@@ -937,7 +936,8 @@ kmodules.xyz/openshift/apis/security/v1
 kmodules.xyz/webhook-runtime/admission/v1beta1
 kmodules.xyz/webhook-runtime/registry/admissionreview/v1beta1
 kmodules.xyz/webhook-runtime/apis/workload/v1
-# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190826111341-6b86cad5912e
+# kubedb.dev/apimachinery v0.0.0-20190830130249-4f7dcc414dbc
+kubedb.dev/apimachinery/apis/catalog/v1alpha1
 kubedb.dev/apimachinery/apis/kubedb/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned
 kubedb.dev/apimachinery/pkg/validator
@@ -945,7 +945,6 @@ kubedb.dev/apimachinery/client/clientset/versioned/scheme
 kubedb.dev/apimachinery/apis
 kubedb.dev/apimachinery/client/informers/externalversions
 kubedb.dev/apimachinery/pkg/controller/snapshot
-kubedb.dev/apimachinery/apis/catalog/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util
 kubedb.dev/apimachinery/client/listers/kubedb/v1alpha1
 kubedb.dev/apimachinery/pkg/controller
@@ -954,6 +953,8 @@ kubedb.dev/apimachinery/pkg/controller/restoresession
 kubedb.dev/apimachinery/pkg/eventer
 kubedb.dev/apimachinery/pkg/admission/dormantdatabase
 kubedb.dev/apimachinery/pkg/admission/namespace
+kubedb.dev/apimachinery/pkg/admission/snapshot
+kubedb.dev/apimachinery/apis/catalog
 kubedb.dev/apimachinery/apis/kubedb
 kubedb.dev/apimachinery/client/clientset/versioned/typed/catalog/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned/typed/config/v1alpha1
@@ -965,7 +966,6 @@ kubedb.dev/apimachinery/client/informers/externalversions/internalinterfaces
 kubedb.dev/apimachinery/client/informers/externalversions/kubedb
 kubedb.dev/apimachinery/client/informers/externalversions/kubedb/v1alpha1
 kubedb.dev/apimachinery/pkg/controller/job
-kubedb.dev/apimachinery/apis/catalog
 kubedb.dev/apimachinery/pkg/admission
 kubedb.dev/apimachinery/client/clientset/versioned/typed/catalog/v1alpha1/fake
 kubedb.dev/apimachinery/client/clientset/versioned/typed/config/v1alpha1/fake

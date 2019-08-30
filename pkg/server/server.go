@@ -22,6 +22,7 @@ import (
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/pkg/admission/dormantdatabase"
 	"kubedb.dev/apimachinery/pkg/admission/namespace"
+	"kubedb.dev/apimachinery/pkg/admission/snapshot"
 	"kubedb.dev/apimachinery/pkg/eventer"
 	proxysqlAdmsn "kubedb.dev/proxysql/pkg/admission"
 	"kubedb.dev/proxysql/pkg/controller"
@@ -117,7 +118,7 @@ func (c completedConfig) New() (*ProxySQLServer, error) {
 	if c.OperatorConfig.EnableValidatingWebhook {
 		c.ExtraConfig.AdmissionHooks = append(c.ExtraConfig.AdmissionHooks,
 			&proxysqlAdmsn.ProxySQLValidator{},
-			//&snapshot.SnapshotValidator{},
+			&snapshot.SnapshotValidator{},
 			&dormantdatabase.DormantDatabaseValidator{},
 			&namespace.NamespaceValidator{
 				Resources: []string{api.ResourcePluralProxySQL},

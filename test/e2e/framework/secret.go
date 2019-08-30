@@ -158,7 +158,7 @@ func (f *Framework) GetMySQLRootPassword(px *api.PerconaXtraDB) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	password := string(secret.Data[controller.KeyPerconaXtraDBPassword])
+	password := string(secret.Data[controller.MySQLPasswordKey])
 	return password, nil
 }
 

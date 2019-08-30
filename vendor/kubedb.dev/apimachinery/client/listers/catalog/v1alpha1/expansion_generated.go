@@ -46,6 +46,10 @@ type PerconaXtraDBVersionListerExpansion interface{}
 // PostgresVersionLister.
 type PostgresVersionListerExpansion interface{}
 
+// ProxySQLVersionListerExpansion allows custom methods to be added to
+// ProxySQLVersionLister.
+type ProxySQLVersionListerExpansion interface{}
+
 // RedisVersionListerExpansion allows custom methods to be added to
 // RedisVersionLister.
 type RedisVersionListerExpansion interface{}

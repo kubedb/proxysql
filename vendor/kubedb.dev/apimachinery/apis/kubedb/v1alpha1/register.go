@@ -59,6 +59,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&SnapshotList{},
 		&DormantDatabase{},
 		&DormantDatabaseList{},
+		&ProxySQL{},
+		&ProxySQLList{},
 	)
 
 	scheme.AddKnownTypes(SchemeGroupVersion,

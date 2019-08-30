@@ -14,20 +14,20 @@ import (
 )
 
 func (c *Controller) GetDatabase(meta metav1.ObjectMeta) (runtime.Object, error) {
-	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	proxysql, err := c.proxysqlLister.ProxySQLs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return px, nil
+	return proxysql, nil
 }
 
 func (c *Controller) SetDatabaseStatus(meta metav1.ObjectMeta, phase api.DatabasePhase, reason string) error {
-	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	proxysql, err := c.proxysqlLister.ProxySQLs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return err
 	}
-	_, err = util.UpdatePerconaXtraDBStatus(c.ExtClient.KubedbV1alpha1(), px, func(in *api.PerconaXtraDBStatus) *api.PerconaXtraDBStatus {
+	_, err = util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
 		in.Phase = phase
 		in.Reason = reason
 		return in
@@ -36,12 +36,12 @@ func (c *Controller) SetDatabaseStatus(meta metav1.ObjectMeta, phase api.Databas
 }
 
 func (c *Controller) UpsertDatabaseAnnotation(meta metav1.ObjectMeta, annotation map[string]string) error {
-	px, err := c.proxysqlLister.PerconaXtraDBs(meta.Namespace).Get(meta.Name)
+	proxysql, err := c.proxysqlLister.ProxySQLs(meta.Namespace).Get(meta.Name)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = util.PatchPerconaXtraDB(c.ExtClient.KubedbV1alpha1(), px, func(in *api.PerconaXtraDB) *api.PerconaXtraDB {
+	_, _, err = util.PatchProxySQL(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQL) *api.ProxySQL {
 		in.Annotations = core_util.UpsertMap(in.Annotations, annotation)
 		return in
 	})
@@ -55,7 +55,7 @@ func (c *Controller) ValidateSnapshot(snapshot *api.Snapshot) error {
 		return fmt.Errorf(`object 'DatabaseName' is missing in '%v'`, snapshot.Spec)
 	}
 
-	if _, err := c.proxysqlLister.PerconaXtraDBs(snapshot.Namespace).Get(databaseName); err != nil {
+	if _, err := c.proxysqlLister.ProxySQLs(snapshot.Namespace).Get(databaseName); err != nil {
 		return err
 	}
 

@@ -1,14 +1,10 @@
 package controller
 
 import (
-	"fmt"
-
 	"github.com/appscode/go/encoding/json/types"
 	"github.com/appscode/go/log"
 	"github.com/pkg/errors"
 	core "k8s.io/api/core/v1"
-	kerr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/reference"
@@ -70,7 +66,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return err
 	}
 
-	if err := c.ensureDatabaseSecret(proxysql); err != nil {
+	if err := c.ensureProxySQLSecret(proxysql); err != nil {
 		return err
 	}
 
@@ -131,11 +127,11 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return nil
 	}
 
-	_, err = c.ensureAppBinding(proxysql)
-	if err != nil {
-		log.Errorln(err)
-		return err
-	}
+	//_, err = c.ensureAppBinding(proxysql)
+	//if err != nil {
+	//	log.Errorln(err)
+	//	return err
+	//}
 
 	return nil
 }
