@@ -11,6 +11,7 @@ import (
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/reference"
 	kutil "kmodules.xyz/client-go"
@@ -245,14 +246,14 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 
 	proxysql.Spec.PodTemplate.Spec.ServiceAccountName = proxysql.OffshootName()
 
-	var envList []core.EnvVar
-	var peers []string
 	var backendDB db
+	backend := proxysql.Spec.Backend.Ref
+	gk := schema.GroupKind{Group: *backend.APIGroup, Kind: backend.Kind}
 
-	switch backend := proxysql.Spec.Backend.Ref; backend.Kind {
-	case api.ResourceKindPerconaXtraDB:
+	switch gk {
+	case api.Kind(api.ResourceKindPerconaXtraDB):
 		backendDB, err = c.ExtClient.KubedbV1alpha1().PerconaXtraDBs(proxysql.Namespace).Get(backend.Name, metav1.GetOptions{})
-	case api.ResourceKindMySQL:
+	case api.Kind(api.ResourceKindMySQL):
 		backendDB, err = c.ExtClient.KubedbV1alpha1().MySQLs(proxysql.Namespace).Get(backend.Name, metav1.GetOptions{})
 		// TODO: add other cases for MySQL and MariaDB when they will be configured
 	}
@@ -260,11 +261,12 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 		return kutil.VerbUnchanged, err
 	}
 
+	peers := make([]string, 0, backendDB.Replicas())
 	for i := 0; i < int(backendDB.Replicas()); i += 1 {
 		peers = append(peers, backendDB.PeerName(i))
 	}
 
-	envList = append(envList, []core.EnvVar{
+	envList := []core.EnvVar{
 		{
 			Name: "MYSQL_ROOT_PASSWORD",
 			ValueFrom: &core.EnvVarSource{
@@ -306,7 +308,7 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 			Name:  "LOAD_BALANCE_MODE",
 			Value: string(*proxysql.Spec.Mode),
 		},
-	}...)
+	}
 
 	opts := workloadOptions{
 		stsName:        proxysql.OffshootName(),
