@@ -322,6 +322,8 @@ $(BUILD_DIRS):
 install:
 	@cd ../installer; \
 	APPSCODE_ENV=dev KUBEDB_DOCKER_REGISTRY=$(REGISTRY) KUBEDB_OPERATOR_TAG=$(TAG) KUBEDB_CATALOG=proxysql ./deploy/kubedb.sh --operator-name=$(BIN)
+	@echo "updating validating and mutating webhooks"
+	kubectl apply -f ./hack/dev/webhook.yaml
 
 .PHONY: uninstall
 uninstall:
