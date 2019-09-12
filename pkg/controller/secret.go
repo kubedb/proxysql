@@ -13,7 +13,6 @@ import (
 
 const (
 	proxysqlUser     = "proxysql"
-	MySQLPasswordKey = "password"
 )
 
 func (c *Controller) ensureProxySQLSecret(proxysql *api.ProxySQL) error {

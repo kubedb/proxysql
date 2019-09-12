@@ -13,14 +13,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/cli"
-	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	//appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
 	"kubedb.dev/apimachinery/apis"
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 	kubedbinformers "kubedb.dev/apimachinery/client/informers/externalversions"
-	snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
+	//snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
 	"kubedb.dev/proxysql/pkg/controller"
-	scs "stash.appscode.dev/stash/client/clientset/versioned"
-	stashInformers "stash.appscode.dev/stash/client/informers/externalversions"
+	//scs "stash.appscode.dev/stash/client/clientset/versioned"
+	//stashInformers "stash.appscode.dev/stash/client/informers/externalversions"
 )
 
 type ExtraOptions struct {
@@ -117,17 +117,17 @@ func (s *ExtraOptions) ApplyTo(cfg *controller.OperatorConfig) error {
 	if cfg.DynamicClient, err = dynamic.NewForConfig(cfg.ClientConfig); err != nil {
 		return err
 	}
-	if cfg.AppCatalogClient, err = appcat_cs.NewForConfig(cfg.ClientConfig); err != nil {
-		return err
-	}
-	if cfg.StashClient, err = scs.NewForConfig(cfg.ClientConfig); err != nil {
-		return err
-	}
+	//if cfg.AppCatalogClient, err = appcat_cs.NewForConfig(cfg.ClientConfig); err != nil {
+	//	return err
+	//}
+	//if cfg.StashClient, err = scs.NewForConfig(cfg.ClientConfig); err != nil {
+	//	return err
+	//}
 	cfg.KubeInformerFactory = informers.NewSharedInformerFactory(cfg.KubeClient, cfg.ResyncPeriod)
 	cfg.KubedbInformerFactory = kubedbinformers.NewSharedInformerFactory(cfg.DBClient, cfg.ResyncPeriod)
-	cfg.StashInformerFactory = stashInformers.NewSharedInformerFactory(cfg.StashClient, cfg.ResyncPeriod)
+	//cfg.StashInformerFactory = stashInformers.NewSharedInformerFactory(cfg.StashClient, cfg.ResyncPeriod)
 
-	cfg.CronController = snapc.NewCronController(cfg.KubeClient, cfg.DBClient, cfg.DynamicClient)
+	//cfg.CronController = snapc.NewCronController(cfg.KubeClient, cfg.DBClient, cfg.DynamicClient)
 
 	return nil
 }

@@ -462,7 +462,6 @@ gopkg.in/yaml.v2
 k8s.io/api/admission/v1beta1
 k8s.io/api/core/v1
 k8s.io/api/apps/v1
-k8s.io/api/batch/v1
 k8s.io/api/policy/v1beta1
 k8s.io/api/rbac/v1beta1
 k8s.io/api/authentication/v1
@@ -477,6 +476,7 @@ k8s.io/api/authorization/v1beta1
 k8s.io/api/autoscaling/v1
 k8s.io/api/autoscaling/v2beta1
 k8s.io/api/autoscaling/v2beta2
+k8s.io/api/batch/v1
 k8s.io/api/batch/v1beta1
 k8s.io/api/batch/v2alpha1
 k8s.io/api/certificates/v1beta1
@@ -510,7 +510,6 @@ k8s.io/apimachinery/pkg/util/mergepatch
 k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/runtime
-k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/runtime/serializer
 k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/api/resource
@@ -525,6 +524,7 @@ k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/naming
+k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/runtime/serializer/versioning
@@ -936,7 +936,7 @@ kmodules.xyz/openshift/apis/security/v1
 kmodules.xyz/webhook-runtime/admission/v1beta1
 kmodules.xyz/webhook-runtime/registry/admissionreview/v1beta1
 kmodules.xyz/webhook-runtime/apis/workload/v1
-# kubedb.dev/apimachinery v0.0.0-20190830130249-4f7dcc414dbc
+# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190909043352-d3f1f2a95054
 kubedb.dev/apimachinery/apis/catalog/v1alpha1
 kubedb.dev/apimachinery/apis/kubedb/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned
@@ -948,8 +948,6 @@ kubedb.dev/apimachinery/pkg/controller/snapshot
 kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util
 kubedb.dev/apimachinery/client/listers/kubedb/v1alpha1
 kubedb.dev/apimachinery/pkg/controller
-kubedb.dev/apimachinery/pkg/controller/dormantdatabase
-kubedb.dev/apimachinery/pkg/controller/restoresession
 kubedb.dev/apimachinery/pkg/eventer
 kubedb.dev/apimachinery/pkg/admission/dormantdatabase
 kubedb.dev/apimachinery/pkg/admission/namespace
@@ -1016,16 +1014,16 @@ stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1alpha1
 stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1beta1
 stash.appscode.dev/stash/client/informers/externalversions/internalinterfaces
 stash.appscode.dev/stash/client/informers/externalversions/stash
-stash.appscode.dev/stash/client/informers/externalversions/stash/v1beta1
-stash.appscode.dev/stash/client/listers/stash/v1beta1
 stash.appscode.dev/stash/apis
 stash.appscode.dev/stash/apis/stash
 stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1beta1/util
 stash.appscode.dev/stash/client/listers/stash/v1alpha1
+stash.appscode.dev/stash/client/listers/stash/v1beta1
 stash.appscode.dev/stash/pkg/docker
 stash.appscode.dev/stash/apis/repositories/v1alpha1
 stash.appscode.dev/stash/client/clientset/versioned/scheme
 stash.appscode.dev/stash/client/informers/externalversions/stash/v1alpha1
+stash.appscode.dev/stash/client/informers/externalversions/stash/v1beta1
 stash.appscode.dev/stash/apis/repositories
 # xorm.io/builder v0.3.5
 xorm.io/builder

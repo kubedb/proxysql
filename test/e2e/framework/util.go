@@ -5,12 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/appscode/go/types"
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	core_util "kmodules.xyz/client-go/core/v1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
@@ -84,24 +82,24 @@ func (f *Framework) CleanWorkloadLeftOvers() {
 	}
 }
 
-func (f *Framework) WaitUntilPodRunningBySelector(px *api.PerconaXtraDB, proxysql bool) error {
-	if !proxysql {
-		return core_util.WaitUntilPodRunningBySelector(
-			f.kubeClient,
-			px.Namespace,
-			&metav1.LabelSelector{
-				MatchLabels: px.ClusterSelectors(),
-			},
-			int(types.Int32(px.Spec.Replicas)),
-		)
-	} else {
-		return core_util.WaitUntilPodRunningBySelector(
-			f.kubeClient,
-			px.Namespace,
-			&metav1.LabelSelector{
-				MatchLabels: px.ProxysqlSelectors(),
-			},
-			int(types.Int32(px.Spec.PXC.Proxysql.Replicas)),
-		)
-	}
-}
+//func (f *Framework) WaitUntilPodRunningBySelector(px *api.PerconaXtraDB, proxysql bool) error {
+//	if !proxysql {
+//		return core_util.WaitUntilPodRunningBySelector(
+//			f.kubeClient,
+//			px.Namespace,
+//			&metav1.LabelSelector{
+//				MatchLabels: px.ClusterSelectors(),
+//			},
+//			int(types.Int32(px.Spec.Replicas)),
+//		)
+//	} else {
+//		return core_util.WaitUntilPodRunningBySelector(
+//			f.kubeClient,
+//			px.Namespace,
+//			&metav1.LabelSelector{
+//				MatchLabels: px.ProxysqlSelectors(),
+//			},
+//			int(types.Int32(px.Spec.PXC.Proxysql.Replicas)),
+//		)
+//	}
+//}

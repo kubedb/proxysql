@@ -8,17 +8,17 @@ import (
 	admission "k8s.io/api/admission/v1beta1"
 	apps "k8s.io/api/apps/v1"
 	authenticationV1 "k8s.io/api/authentication/v1"
-	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	storageV1beta1 "k8s.io/api/storage/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
 	"kmodules.xyz/client-go/meta"
-	mona "kmodules.xyz/monitoring-agent-api/api/v1"
 	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
+	"kubedb.dev/apimachinery/apis/kubedb"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	extFake "kubedb.dev/apimachinery/client/clientset/versioned/fake"
 	"kubedb.dev/apimachinery/client/clientset/versioned/scheme"
@@ -28,53 +28,49 @@ func init() {
 	scheme.AddToScheme(clientSetScheme.Scheme)
 }
 
-var requestKind = metaV1.GroupVersionKind{
+var requestKind = metav1.GroupVersionKind{
 	Group:   api.SchemeGroupVersion.Group,
 	Version: api.SchemeGroupVersion.Version,
-	Kind:    api.ResourceKindPerconaXtraDB,
+	Kind:    api.ResourceKindProxySQL,
 }
 
 func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.testName, func(t *testing.T) {
-			validator := PerconaXtraDBValidator{}
+			validator := ProxySQLValidator{}
 
 			validator.initialized = true
 			validator.extClient = extFake.NewSimpleClientset(
-				&catalog.PerconaXtraDBVersion{
-					ObjectMeta: metaV1.ObjectMeta{
+				&catalog.ProxySQLVersion{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "5.7",
 					},
-					Spec: catalog.PerconaXtraDBVersionSpec{
+					Spec: catalog.ProxySQLVersionSpec{
 						Version: "5.7",
 					},
 				},
-				&catalog.PerconaXtraDBVersion{
-					ObjectMeta: metaV1.ObjectMeta{
-						Name: "5.6",
-					},
-					Spec: catalog.PerconaXtraDBVersionSpec{
-						Version: "5.6",
+				&api.PerconaXtraDB{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "bar",
+						Namespace: "default",
 					},
 				},
-				&catalog.PerconaXtraDBVersion{
-					ObjectMeta: metaV1.ObjectMeta{
-						Name: "5.7.25",
-					},
-					Spec: catalog.PerconaXtraDBVersionSpec{
-						Version: "5.7.25",
+				&api.MySQL{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "bar",
+						Namespace: "default",
 					},
 				},
 			)
 			validator.client = fake.NewSimpleClientset(
-				&core.Secret{
-					ObjectMeta: metaV1.ObjectMeta{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-auth",
 						Namespace: "default",
 					},
 				},
 				&storageV1beta1.StorageClass{
-					ObjectMeta: metaV1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "standard",
 					},
 				},
@@ -100,7 +96,7 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 			req.OldObject.Raw = oldObjJS
 
 			if c.heatUp {
-				if _, err := validator.extClient.KubedbV1alpha1().PerconaXtraDBs(c.namespace).Create(&c.object); err != nil && !kerr.IsAlreadyExists(err) {
+				if _, err := validator.extClient.KubedbV1alpha1().ProxySQLs(c.namespace).Create(&c.object); err != nil && !kerr.IsAlreadyExists(err) {
 					t.Errorf(err.Error())
 				}
 			}
@@ -123,67 +119,186 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 var cases = []struct {
 	testName   string
-	kind       metaV1.GroupVersionKind
+	kind       metav1.GroupVersionKind
 	objectName string
 	namespace  string
 	operation  admission.Operation
-	object     api.PerconaXtraDB
-	oldObject  api.PerconaXtraDB
+	object     api.ProxySQL
+	oldObject  api.ProxySQL
 	heatUp     bool
 	result     bool
-}{
-	{"Create Valid PerconaXtraDB",
+} {
+	{"Create Valid ProxySQL backed for PerconaXtraDB",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		samplePerconaXtraDB(),
-		api.PerconaXtraDB{},
+		sampleProxySQLForPerconaXtraDB(),
+		api.ProxySQL{},
 		false,
 		true,
 	},
-	{"Create PerconaXtraDB without single node replicas",
+	{"Create Valid ProxySQL backed for MySQL",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		perconaxtradbWithoutSingleReplica(),
-		api.PerconaXtraDB{},
+		sampleProxySQLForMySQL(),
+		api.ProxySQL{},
 		false,
-		false,
+		true,
 	},
 	{"Create Invalid proxysql",
 		requestKind,
 		"foo",
 		"default",
 		admission.Create,
-		getAwkwardPerconaXtraDB(),
-		api.PerconaXtraDB{},
+		getAwkwardProxySQL(),
+		api.ProxySQL{},
 		false,
 		false,
 	},
-	{"Edit PerconaXtraDB Spec.DatabaseSecret with Existing Secret",
+	{"Create ProxySQL without single replicas",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithoutSingleReplica(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with empty mode",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		sampleProxySQL(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with invalid mode",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithInvalidMode(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with empty backend",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithEmptyBackend(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with empty backend replicas",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithEmptyBackendReplicas(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with empty backend replicas",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithEmptyBackendRef(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with empty backend replicas",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithEmptyBackendAPIGroup(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with invalid group kind",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithInvalidGroupKind(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with unmatched mode-backend-01",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithUnmatchedModeBackend1(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with unmatched mode-backend-02",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithUnmatchedModeBackend2(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with unavailable PerconaXtraDB object",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithUnavailablePerconaXtraDB(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Create ProxySQL with unavailable MySQL object",
+		requestKind,
+		"foo",
+		"default",
+		admission.Create,
+		proxysqlWithUnavailableMySQL(),
+		api.ProxySQL{},
+		false,
+		false,
+	},
+	{"Edit ProxySQL .spec.ProxySQLSecret with Existing Secret",
 		requestKind,
 		"foo",
 		"default",
 		admission.Update,
-		editExistingSecret(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
+		editExistingSecret(sampleProxySQLForPerconaXtraDB()),
+		sampleProxySQLForPerconaXtraDB(),
 		false,
 		true,
 	},
-	{"Edit PerconaXtraDB Spec.DatabaseSecret with non Existing Secret",
+	{"Edit ProxySQL Spec.DatabaseSecret with non Existing Secret",
 		requestKind,
 		"foo",
 		"default",
 		admission.Update,
-		editNonExistingSecret(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
+		editNonExistingSecret(sampleProxySQLForPerconaXtraDB()),
+		sampleProxySQLForPerconaXtraDB(),
 		false,
 		true,
 	},
@@ -192,278 +307,183 @@ var cases = []struct {
 		"foo",
 		"default",
 		admission.Update,
-		editStatus(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
+		editStatus(sampleProxySQLForPerconaXtraDB()),
+		sampleProxySQLForPerconaXtraDB(),
 		false,
 		true,
 	},
-	{"Edit Spec.Monitor",
-		requestKind,
-		"foo",
-		"default",
-		admission.Update,
-		editSpecMonitor(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
-		false,
-		true,
-	},
-	{"Edit Invalid Spec.Monitor",
-		requestKind,
-		"foo",
-		"default",
-		admission.Update,
-		editSpecInvalidMonitor(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
-		false,
-		false,
-	},
-	{"Edit Spec.TerminationPolicy",
-		requestKind,
-		"foo",
-		"default",
-		admission.Update,
-		pauseDatabase(samplePerconaXtraDB()),
-		samplePerconaXtraDB(),
-		false,
-		true,
-	},
-	{"Delete PerconaXtraDB when Spec.TerminationPolicy=DoNotTerminate",
+	{"Delete ProxySQL",
 		requestKind,
 		"foo",
 		"default",
 		admission.Delete,
-		samplePerconaXtraDB(),
-		api.PerconaXtraDB{},
+		sampleProxySQLForPerconaXtraDB(),
+		api.ProxySQL{},
 		true,
-		false,
+		true,
 	},
-	{"Delete PerconaXtraDB when Spec.TerminationPolicy=Pause",
+	{"Delete Non Existing ProxySQL",
 		requestKind,
 		"foo",
 		"default",
 		admission.Delete,
-		pauseDatabase(samplePerconaXtraDB()),
-		api.PerconaXtraDB{},
-		true,
-		true,
-	},
-	{"Delete Non Existing PerconaXtraDB",
-		requestKind,
-		"foo",
-		"default",
-		admission.Delete,
-		api.PerconaXtraDB{},
-		api.PerconaXtraDB{},
+		api.ProxySQL{},
+		api.ProxySQL{},
 		false,
 		true,
-	},
-
-	// XtraDB Cluster
-	{"Create a valid PerconaXtraDB Cluster",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		sampleXtraDBCluster(),
-		api.PerconaXtraDB{},
-		false,
-		true,
-	},
-	{"Create PerconaXtraDB Cluster with insufficient node replicas",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		insufficientNodeReplicas(),
-		api.PerconaXtraDB{},
-		false,
-		false,
-	},
-	{"Create PerconaXtraDB Cluster with empty cluster name",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		emptyClusterName(),
-		api.PerconaXtraDB{},
-		false,
-		true,
-	},
-	{"Create PerconaXtraDB Cluster with larger cluster name than recommended",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		largerClusterNameThanRecommended(),
-		api.PerconaXtraDB{},
-		false,
-		false,
-	},
-	{"Create PerconaXtraDB Cluster without single proxysql replicas",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		withoutSingleProxysqlReplicas(),
-		api.PerconaXtraDB{},
-		false,
-		false,
-	},
-	{"Create PerconaXtraDB Cluster with 0 proxysql replicas",
-		requestKind,
-		"foo",
-		"default",
-		admission.Create,
-		withZeroProxysqlReplicas(),
-		api.PerconaXtraDB{},
-		false,
-		false,
 	},
 }
 
-func samplePerconaXtraDB() api.PerconaXtraDB {
-	return api.PerconaXtraDB{
-		TypeMeta: metaV1.TypeMeta{
-			Kind:       api.ResourceKindPerconaXtraDB,
+func sampleProxySQL() api.ProxySQL {
+	return api.ProxySQL{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       api.ResourceKindProxySQL,
 			APIVersion: api.SchemeGroupVersion.String(),
 		},
-		ObjectMeta: metaV1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 			Labels: map[string]string{
-				api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+				api.LabelDatabaseKind: api.ResourceKindProxySQL,
 			},
 		},
-		Spec: api.PerconaXtraDBSpec{
+		Spec: api.ProxySQLSpec{
 			Version:     "5.7",
 			Replicas:    types.Int32P(1),
-			StorageType: api.StorageTypeDurable,
-			Storage: &core.PersistentVolumeClaimSpec{
-				StorageClassName: types.StringP("standard"),
-				Resources: core.ResourceRequirements{
-					Requests: core.ResourceList{
-						core.ResourceStorage: resource.MustParse("100Mi"),
-					},
+			Backend: &api.ProxySQLBackendSpec{
+				Ref: &corev1.TypedLocalObjectReference{
+					APIGroup: types.StringP(kubedb.GroupName),
+					Name:     "bar",
 				},
 			},
-			Init: &api.InitSpec{
-				ScriptSource: &api.ScriptSourceSpec{
-					VolumeSource: core.VolumeSource{
-						GitRepo: &core.GitRepoVolumeSource{
-							Repository: "https://kubedb.dev/proxysql-init-scripts.git",
-							Directory:  ".",
-						},
+			StorageType: api.StorageTypeDurable,
+			Storage: &corev1.PersistentVolumeClaimSpec{
+				StorageClassName: types.StringP("standard"),
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("100Mi"),
 					},
 				},
 			},
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
-			TerminationPolicy: api.TerminationPolicyDoNotTerminate,
 		},
 	}
 }
 
-func getAwkwardPerconaXtraDB() api.PerconaXtraDB {
-	px := samplePerconaXtraDB()
-	px.Spec.Version = "3.0"
-	return px
+func sampleProxySQLForPerconaXtraDB() api.ProxySQL {
+	proxysql := sampleProxySQL()
+	mode := api.LoadBalanceModeGalera
+	proxysql.Spec.Mode = &mode
+	proxysql.Spec.Backend.Ref.Kind = api.ResourceKindPerconaXtraDB
+	proxysql.Spec.Backend.Replicas = types.Int32P(api.PerconaXtraDBDefaultClusterSize)
+
+	return proxysql
 }
 
-func perconaxtradbWithoutSingleReplica() api.PerconaXtraDB {
-	px := samplePerconaXtraDB()
-	px.Spec.Replicas = types.Int32P(3)
-	return px
+func sampleProxySQLForMySQL() api.ProxySQL {
+	proxysql := sampleProxySQL()
+	mode := api.LoadBalanceModeGroupReplication
+	proxysql.Spec.Mode = &mode
+	proxysql.Spec.Backend.Ref.Kind = api.ResourceKindMySQL
+	proxysql.Spec.Backend.Replicas = types.Int32P(api.MySQLDefaultGroupSize)
+
+	return proxysql
 }
 
-func editExistingSecret(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Spec.DatabaseSecret = &core.SecretVolumeSource{
+func getAwkwardProxySQL() api.ProxySQL {
+	proxysql := sampleProxySQL()
+	proxysql.Spec.Version = "0.1"
+	return proxysql
+}
+
+func proxysqlWithoutSingleReplica() api.ProxySQL {
+	proxysql := sampleProxySQL()
+	proxysql.Spec.Replicas = types.Int32P(3)
+	return proxysql
+}
+
+func proxysqlWithInvalidMode() api.ProxySQL {
+	proxysql := sampleProxySQL()
+	mode := api.LoadBalanceMode("Sentinel")
+	proxysql.Spec.Mode = &mode
+	return proxysql
+}
+
+func proxysqlWithEmptyBackend() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend = nil
+	return proxysql
+}
+
+func proxysqlWithEmptyBackendReplicas() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend.Replicas = nil
+	return proxysql
+}
+
+func proxysqlWithEmptyBackendRef() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend.Ref = nil
+	return proxysql
+}
+
+func proxysqlWithEmptyBackendAPIGroup() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend.Ref = nil
+	return proxysql
+}
+
+func proxysqlWithInvalidGroupKind() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend.Ref.Kind = api.ResourceKindPostgres
+	return proxysql
+}
+
+func proxysqlWithUnmatchedModeBackend1() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	mode := api.LoadBalanceModeGroupReplication
+	proxysql.Spec.Mode = &mode
+	return proxysql
+}
+
+func proxysqlWithUnmatchedModeBackend2() api.ProxySQL {
+	proxysql := sampleProxySQLForMySQL()
+	mode := api.LoadBalanceModeGalera
+	proxysql.Spec.Mode = &mode
+	return proxysql
+}
+
+func proxysqlWithUnavailablePerconaXtraDB() api.ProxySQL {
+	proxysql := sampleProxySQLForPerconaXtraDB()
+	proxysql.Spec.Backend.Ref.Name = "unavailable-bar"
+	return proxysql
+}
+
+func proxysqlWithUnavailableMySQL() api.ProxySQL {
+	proxysql := sampleProxySQLForMySQL()
+	proxysql.Spec.Backend.Ref.Name = "unavailable-bar"
+	return proxysql
+}
+
+func editExistingSecret(old api.ProxySQL) api.ProxySQL {
+	old.Spec.ProxySQLSecret = &corev1.SecretVolumeSource{
 		SecretName: "foo-auth",
 	}
 	return old
 }
 
-func editNonExistingSecret(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Spec.DatabaseSecret = &core.SecretVolumeSource{
+func editNonExistingSecret(old api.ProxySQL) api.ProxySQL {
+	old.Spec.ProxySQLSecret = &corev1.SecretVolumeSource{
 		SecretName: "foo-auth-fused",
 	}
 	return old
 }
 
-func editStatus(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Status = api.PerconaXtraDBStatus{
+func editStatus(old api.ProxySQL) api.ProxySQL {
+	old.Status = api.ProxySQLStatus{
 		Phase: api.DatabasePhaseCreating,
 	}
 	return old
-}
-
-func editSpecMonitor(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Spec.Monitor = &mona.AgentSpec{
-		Agent: mona.AgentPrometheusBuiltin,
-		Prometheus: &mona.PrometheusSpec{
-			Port: 1289,
-		},
-	}
-	return old
-}
-
-// should be failed because more fields required for COreOS Monitoring
-func editSpecInvalidMonitor(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Spec.Monitor = &mona.AgentSpec{
-		Agent: mona.AgentCoreOSPrometheus,
-	}
-	return old
-}
-
-func pauseDatabase(old api.PerconaXtraDB) api.PerconaXtraDB {
-	old.Spec.TerminationPolicy = api.TerminationPolicyPause
-	return old
-}
-
-func sampleXtraDBCluster() api.PerconaXtraDB {
-	perconaxtradb := samplePerconaXtraDB()
-	perconaxtradb.Spec.Replicas = types.Int32P(3)
-	perconaxtradb.Spec.PXC = &api.PXCSpec{
-		ClusterName: "foo-xtradb-cluster",
-		Proxysql: api.ProxysqlSpec{
-			Replicas: types.Int32P(1),
-		},
-	}
-
-	return perconaxtradb
-}
-
-func insufficientNodeReplicas() api.PerconaXtraDB {
-	perconaxtradb := sampleXtraDBCluster()
-	perconaxtradb.Spec.Replicas = types.Int32P(1)
-
-	return perconaxtradb
-}
-
-func emptyClusterName() api.PerconaXtraDB {
-	perconaxtradb := sampleXtraDBCluster()
-	perconaxtradb.Spec.PXC.ClusterName = ""
-
-	return perconaxtradb
-}
-
-func largerClusterNameThanRecommended() api.PerconaXtraDB {
-	perconaxtradb := sampleXtraDBCluster()
-	perconaxtradb.Name = "aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa"
-
-	return perconaxtradb
-}
-
-func withoutSingleProxysqlReplicas() api.PerconaXtraDB {
-	perconaxtradb := sampleXtraDBCluster()
-	perconaxtradb.Spec.PXC.Proxysql.Replicas = types.Int32P(3)
-
-	return perconaxtradb
-}
-
-func withZeroProxysqlReplicas() api.PerconaXtraDB {
-	perconaxtradb := sampleXtraDBCluster()
-	perconaxtradb.Spec.PXC.Proxysql.Replicas = types.Int32P(0)
-
-	return perconaxtradb
 }

@@ -18,8 +18,8 @@ import (
 	apiext_util "kmodules.xyz/client-go/apiextensions/v1beta1"
 	meta_util "kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/queue"
-	appcat "kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1"
-	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
+	//appcat "kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1"
+	//appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
 	"kubedb.dev/apimachinery/apis"
 	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
@@ -27,11 +27,10 @@ import (
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 	api_listers "kubedb.dev/apimachinery/client/listers/kubedb/v1alpha1"
 	amc "kubedb.dev/apimachinery/pkg/controller"
-	drmnc "kubedb.dev/apimachinery/pkg/controller/dormantdatabase"
-	"kubedb.dev/apimachinery/pkg/controller/restoresession"
-	snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
+	//drmnc "kubedb.dev/apimachinery/pkg/controller/dormantdatabase"
+	//"kubedb.dev/apimachinery/pkg/controller/restoresession"
+	//snapc "kubedb.dev/apimachinery/pkg/controller/snapshot"
 	"kubedb.dev/apimachinery/pkg/eventer"
-	scs "stash.appscode.dev/stash/client/clientset/versioned"
 )
 
 type Controller struct {
@@ -40,8 +39,8 @@ type Controller struct {
 
 	// Prometheus client
 	promClient pcm.MonitoringV1Interface
-	// Cron Controller
-	cronController snapc.CronControllerInterface
+	//// Cron Controller
+	//cronController snapc.CronControllerInterface
 	// Event Recorder
 	recorder record.EventRecorder
 	// labelselector for event-handler of Snapshot, Dormant and Job
@@ -53,19 +52,19 @@ type Controller struct {
 	proxysqlLister   api_listers.ProxySQLLister
 }
 
-var _ amc.Snapshotter = &Controller{}
-var _ amc.Deleter = &Controller{}
+//var _ amc.Snapshotter = &Controller{}
+//var _ amc.Deleter = &Controller{}
 
 func New(
 	clientConfig *rest.Config,
 	client kubernetes.Interface,
 	apiExtKubeClient crd_cs.ApiextensionsV1beta1Interface,
 	extClient cs.Interface,
-	stashClient scs.Interface,
+	//stashClient scs.Interface,
 	dynamicClient dynamic.Interface,
-	appCatalogClient appcat_cs.AppcatalogV1alpha1Interface,
+	//appCatalogClient appcat_cs.AppcatalogV1alpha1Interface,
 	promClient pcm.MonitoringV1Interface,
-	cronController snapc.CronControllerInterface,
+	//cronController snapc.CronControllerInterface,
 	opt amc.Config,
 	recorder record.EventRecorder,
 ) *Controller {
@@ -74,14 +73,14 @@ func New(
 			ClientConfig:     clientConfig,
 			Client:           client,
 			ExtClient:        extClient,
-			StashClient:      stashClient,
+			//StashClient:      stashClient,
 			ApiExtKubeClient: apiExtKubeClient,
 			DynamicClient:    dynamicClient,
-			AppCatalogClient: appCatalogClient,
+			//AppCatalogClient: appCatalogClient,
 		},
 		Config:         opt,
 		promClient:     promClient,
-		cronController: cronController,
+		//cronController: cronController,
 		recorder:       recorder,
 		selector: labels.SelectorFromSet(map[string]string{
 			api.LabelDatabaseKind: api.ResourceKindProxySQL,
@@ -95,9 +94,9 @@ func (c *Controller) EnsureCustomResourceDefinitions() error {
 	crds := []*crd_api.CustomResourceDefinition{
 		api.ProxySQL{}.CustomResourceDefinition(),
 		catalog.ProxySQLVersion{}.CustomResourceDefinition(),
-		api.DormantDatabase{}.CustomResourceDefinition(),
-		api.Snapshot{}.CustomResourceDefinition(),
-		appcat.AppBinding{}.CustomResourceDefinition(),
+		//api.DormantDatabase{}.CustomResourceDefinition(),
+		//api.Snapshot{}.CustomResourceDefinition(),
+		//appcat.AppBinding{}.CustomResourceDefinition(),
 	}
 	return apiext_util.RegisterCRDs(c.ApiExtKubeClient, crds)
 }
@@ -105,20 +104,20 @@ func (c *Controller) EnsureCustomResourceDefinitions() error {
 // Init initializes proxysql, DormantDB amd RestoreSession watcher
 func (c *Controller) Init() error {
 	c.initWatcher()
-	c.DrmnQueue = drmnc.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
-	c.RSQueue = restoresession.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
+	//c.DrmnQueue = drmnc.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
+	//c.RSQueue = restoresession.NewController(c.Controller, c, c.Config, nil, c.recorder).AddEventHandlerFunc(c.selector)
 
 	return nil
 }
 
 // RunControllers runs queue.worker
 func (c *Controller) RunControllers(stopCh <-chan struct{}) {
-	// Start Cron
-	c.cronController.StartCron()
+	//// Start Cron
+	//c.cronController.StartCron()
 
 	// Watch x  TPR objects
 	c.proxysqlQueue.Run(stopCh)
-	c.DrmnQueue.Run(stopCh)
+	//c.DrmnQueue.Run(stopCh)
 }
 
 // Blocks caller. Intended to be called as a Go routine.
@@ -135,7 +134,7 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 	}
 
 	<-stopCh
-	c.cronController.StopCron()
+	//c.cronController.StopCron()
 }
 
 // StartAndRunControllers starts InformetFactory and runs queue.worker
@@ -146,23 +145,23 @@ func (c *Controller) StartAndRunControllers(stopCh <-chan struct{}) {
 	c.KubeInformerFactory.Start(stopCh)
 	c.KubedbInformerFactory.Start(stopCh)
 
-	go func() {
-		// start StashInformerFactory only if stash crds (ie, "restoreSession") are available.
-		if err := c.BlockOnStashOperator(stopCh); err != nil {
-			log.Errorln("error while waiting for restoreSession.", err)
-			return
-		}
-
-		// start informer factory
-		c.StashInformerFactory.Start(stopCh)
-		for t, v := range c.StashInformerFactory.WaitForCacheSync(stopCh) {
-			if !v {
-				log.Fatalf("%v timed out waiting for caches to sync", t)
-				return
-			}
-		}
-		c.RSQueue.Run(stopCh)
-	}()
+	//go func() {
+	//	// start StashInformerFactory only if stash crds (ie, "restoreSession") are available.
+	//	if err := c.BlockOnStashOperator(stopCh); err != nil {
+	//		log.Errorln("error while waiting for restoreSession.", err)
+	//		return
+	//	}
+	//
+	//	// start informer factory
+	//	c.StashInformerFactory.Start(stopCh)
+	//	for t, v := range c.StashInformerFactory.WaitForCacheSync(stopCh) {
+	//		if !v {
+	//			log.Fatalf("%v timed out waiting for caches to sync", t)
+	//			return
+	//		}
+	//	}
+	//	c.RSQueue.Run(stopCh)
+	//}()
 
 	// Wait for all involved caches to be synced, before processing items from the queue is started
 	for t, v := range c.KubeInformerFactory.WaitForCacheSync(stopCh) {

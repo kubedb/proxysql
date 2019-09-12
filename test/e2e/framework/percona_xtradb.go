@@ -51,12 +51,12 @@ func (f *Invocation) PerconaXtraDB() *api.PerconaXtraDB {
 func (f *Invocation) PerconaXtraDBCluster() *api.PerconaXtraDB {
 	perconaxtradb := f.PerconaXtraDB()
 	perconaxtradb.Spec.Replicas = types.Int32P(api.PerconaXtraDBDefaultClusterSize)
-	perconaxtradb.Spec.PXC = &api.PXCSpec{
-		ClusterName: perconaxtradb.Name,
-		Proxysql: api.ProxysqlSpec{
-			Replicas: types.Int32P(1),
-		},
-	}
+	//perconaxtradb.Spec.PXC = &api.PXCSpec{
+	//	ClusterName: perconaxtradb.Name,
+	//	Proxysql: api.ProxysqlSpec{
+	//		Replicas: types.Int32P(1),
+	//	},
+	//}
 
 	return perconaxtradb
 }

@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/reference"
-	kutil "kmodules.xyz/client-go"
+	"kmodules.xyz/client-go"
 	app_util "kmodules.xyz/client-go/apps/v1"
 	core_util "kmodules.xyz/client-go/core/v1"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
@@ -24,10 +24,11 @@ import (
 )
 
 type db interface {
-	Replicas() int32
 	PeerName(i int) string
 	GetDatabaseSecretName() string
 }
+var _ db = api.PerconaXtraDB{}
+var _ db = api.MySQL{}
 
 type workloadOptions struct {
 	// App level options
@@ -230,39 +231,27 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 		},
 	}
 
-	//var volumes []core.Volume
-	//var volumeMounts []core.VolumeMount
-
-	//volumeMounts = append(volumeMounts, core.VolumeMount{
-	//	Name:      "data",
-	//	MountPath: api.ProxysqlDataMountPath,
-	//})
-	//volumes = append(volumes, core.Volume{
-	//	Name: "data",
-	//	VolumeSource: core.VolumeSource{
-	//		EmptyDir: &core.EmptyDirVolumeSource{},
-	//	},
-	//})
-
 	proxysql.Spec.PodTemplate.Spec.ServiceAccountName = proxysql.OffshootName()
 
 	var backendDB db
-	backend := proxysql.Spec.Backend.Ref
-	gk := schema.GroupKind{Group: *backend.APIGroup, Kind: backend.Kind}
+	backend := proxysql.Spec.Backend
+	gk := schema.GroupKind{Group: *backend.Ref.APIGroup, Kind: backend.Ref.Kind}
 
 	switch gk {
 	case api.Kind(api.ResourceKindPerconaXtraDB):
-		backendDB, err = c.ExtClient.KubedbV1alpha1().PerconaXtraDBs(proxysql.Namespace).Get(backend.Name, metav1.GetOptions{})
+		backendDB, err = c.ExtClient.KubedbV1alpha1().PerconaXtraDBs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
 	case api.Kind(api.ResourceKindMySQL):
-		backendDB, err = c.ExtClient.KubedbV1alpha1().MySQLs(proxysql.Namespace).Get(backend.Name, metav1.GetOptions{})
+		backendDB, err = c.ExtClient.KubedbV1alpha1().MySQLs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
 		// TODO: add other cases for MySQL and MariaDB when they will be configured
+	 default:
+		return kutil.VerbUnchanged, fmt.Errorf("unknown group kind '%v' is specified", gk.String())
 	}
 	if err != nil {
 		return kutil.VerbUnchanged, err
 	}
 
-	peers := make([]string, 0, backendDB.Replicas())
-	for i := 0; i < int(backendDB.Replicas()); i += 1 {
+	peers := make([]string, 0, *backend.Replicas)
+	for i := 0; i < int(*backend.Replicas); i += 1 {
 		peers = append(peers, backendDB.PeerName(i))
 	}
 
@@ -274,7 +263,7 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 					LocalObjectReference: core.LocalObjectReference{
 						Name: backendDB.GetDatabaseSecretName(),
 					},
-					Key: MySQLPasswordKey,
+					Key: api.MySQLPasswordKey,
 				},
 			},
 		},

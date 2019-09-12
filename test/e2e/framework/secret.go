@@ -13,10 +13,9 @@ import (
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	v1 "kmodules.xyz/client-go/core/v1"
+	"kmodules.xyz/client-go/core/v1"
 	store "kmodules.xyz/objectstore-api/api/v1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/proxysql/pkg/controller"
 	"stash.appscode.dev/stash/pkg/restic"
 )
 
@@ -158,7 +157,7 @@ func (f *Framework) GetMySQLRootPassword(px *api.PerconaXtraDB) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	password := string(secret.Data[controller.MySQLPasswordKey])
+	password := string(secret.Data[api.MySQLPasswordKey])
 	return password, nil
 }
 

@@ -88,11 +88,9 @@ func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.Ad
 	case admission.Delete:
 		if req.Name != "" {
 			// req.Object.Raw = nil, so read from kubernetes
-			obj, err := a.extClient.KubedbV1alpha1().ProxySQLs(req.Namespace).Get(req.Name, metav1.GetOptions{})
+			_, err := a.extClient.KubedbV1alpha1().ProxySQLs(req.Namespace).Get(req.Name, metav1.GetOptions{})
 			if err != nil && !kerr.IsNotFound(err) {
 				return hookapi.StatusInternalServerError(err)
-			} else if err == nil && obj.Spec.TerminationPolicy == api.TerminationPolicyDoNotTerminate {
-				return hookapi.StatusBadRequest(fmt.Errorf(`proxysql "%v/%v" can't be paused. To delete, change spec.terminationPolicy`, req.Namespace, req.Name))
 			}
 		}
 	default:
@@ -128,10 +126,51 @@ func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.Ad
 	return status
 }
 
-// validatePXC checks whether the configurations for ProxySQL Cluster are ok
-func validatePXC(proxysql *api.ProxySQL) error {
+// validateBackendWithMode checks whether the backend configurations for ProxySQL are ok
+func validateBackendWithMode(extClient cs.Interface, proxysql *api.ProxySQL) error {
+	if proxysql.Spec.Mode == nil {
+		return errors.New("'.spec.mode' is missing")
+	}
+	if mode := proxysql.Spec.Mode; *mode != api.LoadBalanceModeGalera && *mode != api.LoadBalanceModeGroupReplication {
+		return errors.Errorf("'.spec.mode' must be either %q or %q",
+			api.LoadBalanceModeGalera, api.LoadBalanceModeGroupReplication)
+	}
 
-	return nil
+	backend := proxysql.Spec.Backend
+	if backend == nil || backend.Replicas == nil || backend.Ref == nil || backend.Ref.APIGroup == nil {
+		return errors.New(`'.spec.backend' and all of its subfields are required`)
+	}
+
+	var err error
+	var requiredMode api.LoadBalanceMode
+	gk := schema.GroupKind{Group: *backend.Ref.APIGroup, Kind: backend.Ref.Kind}
+
+	switch gk {
+	case api.Kind(api.ResourceKindPerconaXtraDB):
+		requiredMode = api.LoadBalanceModeGalera
+		_, err = extClient.KubedbV1alpha1().PerconaXtraDBs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
+
+	case api.Kind(api.ResourceKindMySQL):
+		requiredMode = api.LoadBalanceModeGroupReplication
+		_, err = extClient.KubedbV1alpha1().MySQLs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
+
+	// TODO: add other cases for MySQL and MariaDB when they will be configured
+
+	default:
+		return errors.Errorf("invalid group kind '%v' is specified", gk.String())
+	}
+
+	if *proxysql.Spec.Mode != requiredMode {
+		return errors.Errorf("'.spec.mode' must be %q for %v",
+			requiredMode, backend.Ref.Kind)
+	}
+
+	if err != nil && kerr.IsNotFound(err) {
+		return errors.Errorf("%v object named '%v' is not found",
+			backend.Ref.Kind, backend.Ref.Name)
+	}
+	return errors.Wrapf(err, "failed to get %v object named '%v'",
+		backend.Ref.Kind, backend.Ref.Name)
 }
 
 // ValidateProxySQL checks if the object satisfies all the requirements.
@@ -147,13 +186,16 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 	}
 
 	if proxysql.Spec.Replicas == nil {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server, but for proxysql cluster, value must be greater than 0`,
-			proxysql.Spec.Replicas)
+		return errors.New("'.spec.replicas' is missing")
 	}
 
 	if *proxysql.Spec.Replicas != 1 {
 		return errors.Errorf(`'.spec.replicas' "%v" is invalid. Currently, supported replicas for proxysql is 1`,
-			proxysql.Spec.Replicas)
+			*proxysql.Spec.Replicas)
+	}
+
+	if err = validateBackendWithMode(extClient, proxysql); err != nil {
+		return err
 	}
 
 	if err = amv.ValidateEnvVar(proxysql.Spec.PodTemplate.Spec.Env, forbiddenEnvVars, api.ResourceKindProxySQL); err != nil {
@@ -188,14 +230,6 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 
 	if proxysql.Spec.UpdateStrategy.Type == "" {
 		return fmt.Errorf(`'spec.updateStrategy.type' is missing`)
-	}
-
-	if proxysql.Spec.TerminationPolicy == "" {
-		return fmt.Errorf(`'spec.terminationPolicy' is missing`)
-	}
-
-	if proxysql.Spec.StorageType == api.StorageTypeEphemeral && proxysql.Spec.TerminationPolicy == api.TerminationPolicyPause {
-		return fmt.Errorf(`'spec.terminationPolicy: Pause' can not be used for 'Ephemeral' storage`)
 	}
 
 	monitorSpec := proxysql.Spec.Monitor
