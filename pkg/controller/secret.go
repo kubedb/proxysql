@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	proxysqlUser     = "proxysql"
+	proxysqlUser = "proxysql"
 )
 
 func (c *Controller) ensureProxySQLSecret(proxysql *api.ProxySQL) error {

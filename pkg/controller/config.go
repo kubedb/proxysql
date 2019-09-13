@@ -25,11 +25,8 @@ type OperatorConfig struct {
 	KubeClient       kubernetes.Interface
 	APIExtKubeClient crd_cs.ApiextensionsV1beta1Interface
 	DBClient         cs.Interface
-	//StashClient      scs.Interface
 	DynamicClient    dynamic.Interface
-	//AppCatalogClient appcat_cs.AppcatalogV1alpha1Interface
 	PromClient       pcm.MonitoringV1Interface
-	//CronController   snapc.CronControllerInterface
 }
 
 func NewOperatorConfig(clientConfig *rest.Config) *OperatorConfig {
@@ -50,23 +47,11 @@ func (c *OperatorConfig) New() (*Controller, error) {
 		c.KubeClient,
 		c.APIExtKubeClient,
 		c.DBClient,
-		//c.StashClient,
 		c.DynamicClient,
-		//c.AppCatalogClient,
 		c.PromClient,
-		//c.CronController,
 		c.Config,
 		recorder,
 	)
-
-	//tweakListOptions := func(options *metav1.ListOptions) {
-	//	options.LabelSelector = ctrl.selector.String()
-	//}
-	//
-	//ctrl.DrmnInformer = dormantdatabase.NewController(ctrl.Controller, ctrl, ctrl.Config, tweakListOptions, recorder).InitInformer()
-	//
-	//// Initialize RestoreSession informer.
-	//ctrl.RSInformer = restoresession.NewController(ctrl.Controller, ctrl, ctrl.Config, tweakListOptions, recorder).InitInformer()
 
 	if err := ctrl.EnsureCustomResourceDefinitions(); err != nil {
 		return nil, err

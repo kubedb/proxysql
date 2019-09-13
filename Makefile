@@ -318,10 +318,12 @@ lint: $(BUILD_DIRS)
 $(BUILD_DIRS):
 	@mkdir -p $@
 
+INSTALL_ARGS ?=
+
 .PHONY: install
 install:
 	@cd ../installer; \
-	APPSCODE_ENV=dev KUBEDB_DOCKER_REGISTRY=$(REGISTRY) KUBEDB_OPERATOR_TAG=$(TAG) KUBEDB_CATALOG=proxysql ./deploy/kubedb.sh --operator-name=$(BIN)
+	APPSCODE_ENV=dev KUBEDB_DOCKER_REGISTRY=$(REGISTRY) KUBEDB_OPERATOR_TAG=$(TAG) KUBEDB_CATALOG=proxysql ./deploy/kubedb.sh --operator-name=$(BIN) $(INSTALL_ARGS)
 	@echo "updating validating and mutating webhooks"
 	kubectl apply -f ./hack/dev/webhook.yaml
 

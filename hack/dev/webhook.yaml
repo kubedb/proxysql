@@ -12,7 +12,7 @@ webhooks:
       namespace: default
       name: kubernetes
       path: /apis/validators.kubedb.com/v1alpha1/proxysqlvalidators
-    caBundle: not_ca
+    caBundle:
   rules:
     - apiGroups: ["kubedb.com"]
       apiVersions: ["*"]
@@ -35,7 +35,7 @@ webhooks:
       namespace: default
       name: kubernetes
       path: /apis/mutators.kubedb.com/v1alpha1/proxysqlmutators
-    caBundle: not_ca
+    caBundle:
   rules:
     - apiGroups: ["kubedb.com"]
       apiVersions: ["*"]

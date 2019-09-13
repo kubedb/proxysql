@@ -131,7 +131,8 @@ func validateBackendWithMode(extClient cs.Interface, proxysql *api.ProxySQL) err
 	if proxysql.Spec.Mode == nil {
 		return errors.New("'.spec.mode' is missing")
 	}
-	if mode := proxysql.Spec.Mode; *mode != api.LoadBalanceModeGalera && *mode != api.LoadBalanceModeGroupReplication {
+	if mode := proxysql.Spec.Mode; *mode != api.LoadBalanceModeGalera &&
+		*mode != api.LoadBalanceModeGroupReplication {
 		return errors.Errorf("'.spec.mode' must be either %q or %q",
 			api.LoadBalanceModeGalera, api.LoadBalanceModeGroupReplication)
 	}

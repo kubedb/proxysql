@@ -51,13 +51,13 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 				},
 				&api.PerconaXtraDB{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "bar",
+						Name:      "bar",
 						Namespace: "default",
 					},
 				},
 				&api.MySQL{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "bar",
+						Name:      "bar",
 						Namespace: "default",
 					},
 				},
@@ -131,7 +131,7 @@ var cases = []struct {
 	oldObject  api.ProxySQL
 	heatUp     bool
 	result     bool
-} {
+}{
 	{"Create Valid ProxySQL backed for PerconaXtraDB",
 		requestKind,
 		"foo",
@@ -348,8 +348,8 @@ func sampleProxySQL() api.ProxySQL {
 			},
 		},
 		Spec: api.ProxySQLSpec{
-			Version:     "5.7",
-			Replicas:    types.Int32P(1),
+			Version:  "5.7",
+			Replicas: types.Int32P(1),
 			Backend: &api.ProxySQLBackendSpec{
 				Ref: &corev1.TypedLocalObjectReference{
 					APIGroup: types.StringP(kubedb.GroupName),
