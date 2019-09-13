@@ -268,8 +268,6 @@ github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
 github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
-# github.com/orcaman/concurrent-map v0.0.0-20190314100340-2693aad1ed75
-github.com/orcaman/concurrent-map
 # github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
 # github.com/peterbourgon/diskv v2.0.1+incompatible
@@ -831,7 +829,6 @@ k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/gcp
 k8s.io/client-go/plugin/pkg/client/auth/oidc
 k8s.io/client-go/plugin/pkg/client/auth/openstack
-k8s.io/client-go/listers/batch/v1
 k8s.io/client-go/listers/admissionregistration/v1beta1
 k8s.io/client-go/listers/auditregistration/v1alpha1
 k8s.io/client-go/tools/clientcmd/api/v1
@@ -841,6 +838,7 @@ k8s.io/client-go/listers/apps/v1beta2
 k8s.io/client-go/listers/autoscaling/v1
 k8s.io/client-go/listers/autoscaling/v2beta1
 k8s.io/client-go/listers/autoscaling/v2beta2
+k8s.io/client-go/listers/batch/v1
 k8s.io/client-go/listers/batch/v1beta1
 k8s.io/client-go/listers/batch/v2alpha1
 k8s.io/client-go/listers/certificates/v1beta1
@@ -910,8 +908,8 @@ kmodules.xyz/client-go/apiregistration/v1beta1
 kmodules.xyz/client-go/policy/v1beta1
 # kmodules.xyz/custom-resources v0.0.0-20190808144301-114abf10dfe2
 kmodules.xyz/custom-resources/client/clientset/versioned/scheme
-kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1
 kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1
+kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1
 kmodules.xyz/custom-resources/apis/appcatalog
 kmodules.xyz/custom-resources/client/clientset/versioned
 # kmodules.xyz/monitoring-agent-api v0.0.0-20190808150221-601a4005b7f7
@@ -936,7 +934,7 @@ kmodules.xyz/openshift/apis/security/v1
 kmodules.xyz/webhook-runtime/admission/v1beta1
 kmodules.xyz/webhook-runtime/registry/admissionreview/v1beta1
 kmodules.xyz/webhook-runtime/apis/workload/v1
-# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190909043352-d3f1f2a95054
+# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190913140102-8639f58c603a
 kubedb.dev/apimachinery/apis/catalog/v1alpha1
 kubedb.dev/apimachinery/apis/kubedb/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned
@@ -944,14 +942,11 @@ kubedb.dev/apimachinery/pkg/validator
 kubedb.dev/apimachinery/client/clientset/versioned/scheme
 kubedb.dev/apimachinery/apis
 kubedb.dev/apimachinery/client/informers/externalversions
-kubedb.dev/apimachinery/pkg/controller/snapshot
 kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util
 kubedb.dev/apimachinery/client/listers/kubedb/v1alpha1
 kubedb.dev/apimachinery/pkg/controller
 kubedb.dev/apimachinery/pkg/eventer
-kubedb.dev/apimachinery/pkg/admission/dormantdatabase
 kubedb.dev/apimachinery/pkg/admission/namespace
-kubedb.dev/apimachinery/pkg/admission/snapshot
 kubedb.dev/apimachinery/apis/catalog
 kubedb.dev/apimachinery/apis/kubedb
 kubedb.dev/apimachinery/client/clientset/versioned/typed/catalog/v1alpha1
@@ -962,14 +957,12 @@ kubedb.dev/apimachinery/apis/config/v1alpha1
 kubedb.dev/apimachinery/client/informers/externalversions/catalog
 kubedb.dev/apimachinery/client/informers/externalversions/internalinterfaces
 kubedb.dev/apimachinery/client/informers/externalversions/kubedb
-kubedb.dev/apimachinery/client/informers/externalversions/kubedb/v1alpha1
-kubedb.dev/apimachinery/pkg/controller/job
-kubedb.dev/apimachinery/pkg/admission
 kubedb.dev/apimachinery/client/clientset/versioned/typed/catalog/v1alpha1/fake
 kubedb.dev/apimachinery/client/clientset/versioned/typed/config/v1alpha1/fake
 kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/fake
 kubedb.dev/apimachinery/apis/config
 kubedb.dev/apimachinery/client/informers/externalversions/catalog/v1alpha1
+kubedb.dev/apimachinery/client/informers/externalversions/kubedb/v1alpha1
 kubedb.dev/apimachinery/client/listers/catalog/v1alpha1
 # sigs.k8s.io/kustomize v2.0.3+incompatible
 sigs.k8s.io/kustomize/pkg/fs
@@ -1003,23 +996,23 @@ sigs.k8s.io/structured-merge-diff/schema
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
 # stash.appscode.dev/stash v0.9.0-rc.0
-stash.appscode.dev/stash/client/clientset/versioned
-stash.appscode.dev/stash/client/informers/externalversions
 stash.appscode.dev/stash/apis/stash/v1alpha1
 stash.appscode.dev/stash/apis/stash/v1beta1
+stash.appscode.dev/stash/client/clientset/versioned
 stash.appscode.dev/stash/pkg/restic
 stash.appscode.dev/stash/pkg/util
+stash.appscode.dev/stash/client/informers/externalversions
+stash.appscode.dev/stash/apis
+stash.appscode.dev/stash/apis/stash
 stash.appscode.dev/stash/client/clientset/versioned/typed/repositories/v1alpha1
 stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1alpha1
 stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1beta1
-stash.appscode.dev/stash/client/informers/externalversions/internalinterfaces
-stash.appscode.dev/stash/client/informers/externalversions/stash
-stash.appscode.dev/stash/apis
-stash.appscode.dev/stash/apis/stash
 stash.appscode.dev/stash/client/clientset/versioned/typed/stash/v1beta1/util
 stash.appscode.dev/stash/client/listers/stash/v1alpha1
 stash.appscode.dev/stash/client/listers/stash/v1beta1
 stash.appscode.dev/stash/pkg/docker
+stash.appscode.dev/stash/client/informers/externalversions/internalinterfaces
+stash.appscode.dev/stash/client/informers/externalversions/stash
 stash.appscode.dev/stash/apis/repositories/v1alpha1
 stash.appscode.dev/stash/client/clientset/versioned/scheme
 stash.appscode.dev/stash/client/informers/externalversions/stash/v1alpha1

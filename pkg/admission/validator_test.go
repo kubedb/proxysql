@@ -43,10 +43,10 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 			validator.extClient = extFake.NewSimpleClientset(
 				&catalog.ProxySQLVersion{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "5.7",
+						Name: "2.0.4",
 					},
 					Spec: catalog.ProxySQLVersionSpec{
-						Version: "5.7",
+						Version: "2.0.4",
 					},
 				},
 				&api.PerconaXtraDB{
@@ -348,7 +348,7 @@ func sampleProxySQL() api.ProxySQL {
 			},
 		},
 		Spec: api.ProxySQLSpec{
-			Version:  "5.7",
+			Version:  "2.0.4",
 			Replicas: types.Int32P(1),
 			Backend: &api.ProxySQLBackendSpec{
 				Ref: &corev1.TypedLocalObjectReference{
