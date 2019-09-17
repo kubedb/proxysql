@@ -934,7 +934,7 @@ kmodules.xyz/openshift/apis/security/v1
 kmodules.xyz/webhook-runtime/admission/v1beta1
 kmodules.xyz/webhook-runtime/registry/admissionreview/v1beta1
 kmodules.xyz/webhook-runtime/apis/workload/v1
-# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190913140102-8639f58c603a
+# kubedb.dev/apimachinery v0.13.0-rc.0.0.20190917060420-f1705d459ee6
 kubedb.dev/apimachinery/apis/catalog/v1alpha1
 kubedb.dev/apimachinery/apis/kubedb/v1alpha1
 kubedb.dev/apimachinery/client/clientset/versioned
