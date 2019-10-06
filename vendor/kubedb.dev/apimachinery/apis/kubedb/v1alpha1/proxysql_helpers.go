@@ -33,13 +33,13 @@ func (p ProxySQL) OffshootLabels() map[string]string {
 	out[meta_util.NameLabelKey] = ResourceSingularProxySQL
 	out[meta_util.VersionLabelKey] = string(p.Spec.Version)
 	out[meta_util.InstanceLabelKey] = p.Name
-	out[meta_util.ComponentLabelKey] = "proxysql"
+	out[meta_util.ComponentLabelKey] = ComponentDatabase
 	out[meta_util.ManagedByLabelKey] = GenericKey
 	return meta_util.FilterKeys(GenericKey, out, p.Labels)
 }
 
 func (p ProxySQL) ResourceShortCode() string {
-	return ResourceCodeProxySQL
+	return ""
 }
 
 func (p ProxySQL) ResourceKind() string {
@@ -91,7 +91,7 @@ func (p proxysqlStatsService) ServiceMonitorName() string {
 }
 
 func (p proxysqlStatsService) Path() string {
-	return "/metrics"
+	return DefaultStatsPath
 }
 
 func (p proxysqlStatsService) Scheme() string {
@@ -104,7 +104,7 @@ func (p ProxySQL) StatsService() mona.StatsAccessor {
 
 func (p ProxySQL) StatsServiceLabels() map[string]string {
 	lbl := meta_util.FilterKeys(GenericKey, p.OffshootSelectors(), p.Labels)
-	lbl[LabelRole] = "stats"
+	lbl[LabelRole] = RoleStats
 	return lbl
 }
 
@@ -121,8 +121,7 @@ func (p ProxySQL) CustomResourceDefinition() *apiextensions.CustomResourceDefini
 		Plural:        ResourcePluralProxySQL,
 		Singular:      ResourceSingularProxySQL,
 		Kind:          ResourceKindProxySQL,
-		ShortNames:    []string{ResourceCodeProxySQL},
-		Categories:    []string{"load-balancer", "kubedb", "appscode", "all"},
+		Categories:    []string{"datastore", "kubedb", "appscode", "all"},
 		ResourceScope: string(apiextensions.NamespaceScoped),
 		Versions: []apiextensions.CustomResourceDefinitionVersion{
 			{
@@ -174,9 +173,6 @@ func (p *ProxySQLSpec) SetDefaults() {
 		p.Replicas = types.Int32P(1)
 	}
 
-	if p.StorageType == "" {
-		p.StorageType = StorageTypeDurable
-	}
 	if p.UpdateStrategy.Type == "" {
 		p.UpdateStrategy.Type = apps.RollingUpdateStatefulSetStrategyType
 	}
