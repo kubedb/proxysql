@@ -203,16 +203,6 @@ func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxy
 		return err
 	}
 
-	if proxysql.Spec.StorageType == "" {
-		return fmt.Errorf(`'spec.storageType' is missing`)
-	}
-	if proxysql.Spec.StorageType != api.StorageTypeDurable && proxysql.Spec.StorageType != api.StorageTypeEphemeral {
-		return fmt.Errorf(`'spec.storageType' %s is invalid`, proxysql.Spec.StorageType)
-	}
-	if err = amv.ValidateStorage(client, proxysql.Spec.StorageType, proxysql.Spec.Storage); err != nil {
-		return err
-	}
-
 	proxysqlSecret := proxysql.Spec.ProxySQLSecret
 
 	if strictValidation {
@@ -272,8 +262,6 @@ func getPreconditionFunc() []mergepatch.PreconditionFunc {
 }
 
 var preconditionSpecFields = []string{
-	"spec.storageType",
-	"spec.storage",
 	"spec.databaseSecret",
 	"spec.init",
 	"spec.podTemplate.spec.nodeSelector",

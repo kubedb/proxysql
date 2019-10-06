@@ -196,9 +196,7 @@ func (c completedConfig) New() (*ProxySQLServer, error) {
 							Name:      "test-proxysql-for-webhook-xray",
 							Namespace: "default",
 						},
-						Spec: api.ProxySQLSpec{
-							StorageType: api.StorageType("Invalid"),
-						},
+						Spec: api.ProxySQLSpec{},
 					}, context.StopCh)
 					if err := xray.IsActive(); err != nil {
 						w, _, e2 := dynamic_util.DetectWorkload(

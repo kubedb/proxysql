@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/appscode/go/log"
 	"github.com/appscode/go/types"
 	"github.com/fatih/structs"
 	apps "k8s.io/api/apps/v1"
@@ -54,7 +53,6 @@ type workloadOptions struct {
 	replicas       *int32
 	gvrSvcName     string
 	podTemplate    *ofst.PodTemplateSpec
-	pvcSpec        *core.PersistentVolumeClaimSpec
 	initContainers []core.Container
 	volume         []core.Volume // volumes to mount on stsPodTemplate
 }
@@ -160,7 +158,6 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 		gvrSvcName:     c.GoverningService,
 		podTemplate:    &proxysql.Spec.PodTemplate,
 		configSource:   proxysql.Spec.ConfigSource,
-		pvcSpec:        proxysql.Spec.Storage,
 		replicas:       proxysql.Spec.Replicas,
 		volume:         nil,
 		volumeMount:    nil,
@@ -291,8 +288,6 @@ func (c *Controller) ensureStatefulSet(
 
 		in.Spec.Template.Spec.Volumes = core_util.UpsertVolume(in.Spec.Template.Spec.Volumes, opts.volume...)
 
-		in = upsertDataVolume(in, proxysql)
-
 		if opts.configSource != nil {
 			in.Spec.Template = upsertCustomConfig(in.Spec.Template, opts.configSource)
 		}
@@ -335,60 +330,6 @@ func (c *Controller) ensureStatefulSet(
 	}
 
 	return vt, nil
-}
-
-func upsertDataVolume(statefulSet *apps.StatefulSet, proxysql *api.ProxySQL) *apps.StatefulSet {
-	for i, container := range statefulSet.Spec.Template.Spec.Containers {
-		if container.Name == api.ResourceSingularProxySQL {
-			volumeMount := core.VolumeMount{
-				Name:      "data",
-				MountPath: api.ProxySQLDataMountPath,
-			}
-			volumeMounts := container.VolumeMounts
-			volumeMounts = core_util.UpsertVolumeMount(volumeMounts, volumeMount)
-			statefulSet.Spec.Template.Spec.Containers[i].VolumeMounts = volumeMounts
-
-			pvcSpec := proxysql.Spec.Storage
-			if proxysql.Spec.StorageType == api.StorageTypeEphemeral {
-				ed := core.EmptyDirVolumeSource{}
-				if pvcSpec != nil {
-					if sz, found := pvcSpec.Resources.Requests[core.ResourceStorage]; found {
-						ed.SizeLimit = &sz
-					}
-				}
-				statefulSet.Spec.Template.Spec.Volumes = core_util.UpsertVolume(
-					statefulSet.Spec.Template.Spec.Volumes,
-					core.Volume{
-						Name: "data",
-						VolumeSource: core.VolumeSource{
-							EmptyDir: &ed,
-						},
-					})
-			} else {
-				if len(pvcSpec.AccessModes) == 0 {
-					pvcSpec.AccessModes = []core.PersistentVolumeAccessMode{
-						core.ReadWriteOnce,
-					}
-					log.Infof(`Using "%v" as AccessModes in .spec.storage`, core.ReadWriteOnce)
-				}
-
-				claim := core.PersistentVolumeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "data",
-					},
-					Spec: *pvcSpec,
-				}
-				if pvcSpec.StorageClassName != nil {
-					claim.Annotations = map[string]string{
-						"volume.beta.kubernetes.io/storage-class": *pvcSpec.StorageClassName,
-					}
-				}
-				statefulSet.Spec.VolumeClaimTemplates = core_util.UpsertVolumeClaim(statefulSet.Spec.VolumeClaimTemplates, claim)
-			}
-			break
-		}
-	}
-	return statefulSet
 }
 
 func (c *Controller) checkStatefulSetPodStatus(statefulSet *apps.StatefulSet) error {

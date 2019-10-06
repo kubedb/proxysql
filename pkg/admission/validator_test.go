@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storageV1beta1 "k8s.io/api/storage/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -354,15 +353,6 @@ func sampleProxySQL() api.ProxySQL {
 				Ref: &corev1.TypedLocalObjectReference{
 					APIGroup: types.StringP(kubedb.GroupName),
 					Name:     "bar",
-				},
-			},
-			StorageType: api.StorageTypeDurable,
-			Storage: &corev1.PersistentVolumeClaimSpec{
-				StorageClassName: types.StringP("standard"),
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse("100Mi"),
-					},
 				},
 			},
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
