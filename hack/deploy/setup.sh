@@ -44,7 +44,6 @@ else
 fi
 
 source "$REPO_ROOT/hack/deploy/settings"
-#source "$REPO_ROOT/hack/libbuild/common/lib.sh"
 
 export KUBE_CA=$($ONESSL get kube-ca | $ONESSL base64)
 export APPSCODE_ENV=${APPSCODE_ENV:-prod}

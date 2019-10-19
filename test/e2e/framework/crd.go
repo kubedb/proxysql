@@ -12,14 +12,16 @@ import (
 func (f *Framework) EventuallyCRD() GomegaAsyncAssertion {
 	return Eventually(
 		func() error {
-			// Check PerconaXtraDB TPR
-			if _, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
-				return errors.New("CRD PerconaXtraDB is not ready")
+			// Check ProxySQL
+			if _, err := f.dbClient.KubedbV1alpha1().ProxySQLs(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
+				return errors.New("CRD ProxySQL is not ready")
 			}
 
-			// Check Snapshots TPR
-			if _, err := f.dbClient.KubedbV1alpha1().Snapshots(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
-				return errors.New("CRD Snapshot is not ready")
+			// Check MySQL TPR
+			if MySQLTest {
+				if _, err := f.dbClient.KubedbV1alpha1().MySQLs(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
+					return errors.New("CRD MySQL is not ready")
+				}
 			}
 
 			// Check DormantDatabases TPR

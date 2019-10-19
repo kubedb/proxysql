@@ -12,10 +12,6 @@ import (
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
 
-func (f *Framework) GetDormantDatabase(meta metav1.ObjectMeta) (*api.DormantDatabase, error) {
-	return f.dbClient.KubedbV1alpha1().DormantDatabases(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
-}
-
 func (f *Framework) PatchDormantDatabase(meta metav1.ObjectMeta, transform func(*api.DormantDatabase) *api.DormantDatabase) (*api.DormantDatabase, error) {
 	dormantDatabase, err := f.dbClient.KubedbV1alpha1().DormantDatabases(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
 	if err != nil {
@@ -27,23 +23,6 @@ func (f *Framework) PatchDormantDatabase(meta metav1.ObjectMeta, transform func(
 
 func (f *Framework) DeleteDormantDatabase(meta metav1.ObjectMeta) error {
 	return f.dbClient.KubedbV1alpha1().DormantDatabases(meta.Namespace).Delete(meta.Name, deleteInForeground())
-}
-
-func (f *Framework) EventuallyDormantDatabase(meta metav1.ObjectMeta) GomegaAsyncAssertion {
-	return Eventually(
-		func() bool {
-			_, err := f.dbClient.KubedbV1alpha1().DormantDatabases(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
-			if err != nil {
-				if kerr.IsNotFound(err) {
-					return false
-				}
-				Expect(err).NotTo(HaveOccurred())
-			}
-			return true
-		},
-		time.Minute*5,
-		time.Second*5,
-	)
 }
 
 func (f *Framework) EventuallyDormantDatabaseStatus(meta metav1.ObjectMeta) GomegaAsyncAssertion {
@@ -63,12 +42,12 @@ func (f *Framework) EventuallyDormantDatabaseStatus(meta metav1.ObjectMeta) Gome
 	)
 }
 
-func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta) GomegaAsyncAssertion {
+func (f *Framework) EventuallyWipedOutMySQL(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	return Eventually(
 		func() error {
 			labelMap := map[string]string{
 				api.LabelDatabaseName: meta.Name,
-				api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+				api.LabelDatabaseKind: api.ResourceKindMySQL,
 			}
 			labelSelector := labels.SelectorFromSet(labelMap)
 

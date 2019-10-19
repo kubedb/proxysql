@@ -18,7 +18,6 @@ require (
 	github.com/spf13/pflag v1.0.3
 	golang.org/x/crypto v0.0.0-20190506204251-e1dfcc566284 // indirect
 	golang.org/x/sys v0.0.0-20190508100423-12bbe5a7a520 // indirect
-	gomodules.xyz/stow v0.2.0
 	google.golang.org/genproto v0.0.0-20190508193815-b515fa19cec8 // indirect
 	k8s.io/api v0.0.0-20190503110853-61630f889b3c
 	k8s.io/apiextensions-apiserver v0.0.0-20190516231611-bf6753f2aa24
@@ -29,7 +28,6 @@ require (
 	kmodules.xyz/client-go v0.0.0-20191014080252-6458e3cb3ca6
 	kmodules.xyz/custom-resources v0.0.0-20190927035424-65fe358bb045
 	kmodules.xyz/monitoring-agent-api v0.0.0-20190808150221-601a4005b7f7
-	kmodules.xyz/objectstore-api v0.0.0-20191014164602-39104ec912b7
 	kmodules.xyz/offshoot-api v0.0.0-20190901210649-de049192326c
 	kmodules.xyz/webhook-runtime v0.0.0-20190808145328-4186c470d56b
 	kubedb.dev/apimachinery v0.13.0-rc.1.0.20191018033414-e2aca1186349

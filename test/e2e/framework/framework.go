@@ -12,9 +12,12 @@ import (
 )
 
 var (
-	DockerRegistry     = "kubedbci"
-	SelfHostedOperator = false
-	DBCatalogName      = "5.7"
+	DockerRegistry      = "kubedbci"
+	SelfHostedOperator  = true
+	MySQLCatalogName    = "5.7-v2"
+	ProxySQLCatalogName = "2.0.4"
+
+	MySQLTest = true
 )
 
 type Framework struct {
@@ -58,18 +61,6 @@ func (f *Framework) Invoke() *Invocation {
 		Framework: f,
 		app:       rand.WithUniqSuffix("proxysql-e2e"),
 	}
-}
-
-func (fi *Invocation) App() string {
-	return fi.app
-}
-
-func (fi *Invocation) ExtClient() cs.Interface {
-	return fi.dbClient
-}
-
-func (fi *Invocation) KubeClient() kubernetes.Interface {
-	return fi.kubeClient
 }
 
 type Invocation struct {
