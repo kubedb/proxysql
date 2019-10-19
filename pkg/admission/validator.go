@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/appscode/go/log"
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
@@ -17,20 +16,21 @@ import (
 	"k8s.io/client-go/rest"
 	meta_util "kmodules.xyz/client-go/meta"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
+	catalog_api "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 	amv "kubedb.dev/apimachinery/pkg/validator"
 )
 
-// PerconaXtraDBValidator implements the AdmissionHook interface to validate the PerconaXtraDB resources
-type PerconaXtraDBValidator struct {
+// ProxySQLValidator implements the AdmissionHook interface to validate the ProxySQL resources
+type ProxySQLValidator struct {
 	client      kubernetes.Interface
 	extClient   cs.Interface
 	lock        sync.RWMutex
 	initialized bool
 }
 
-var _ hookapi.AdmissionHook = &PerconaXtraDBValidator{}
+var _ hookapi.AdmissionHook = &ProxySQLValidator{}
 
 var forbiddenEnvVars = []string{
 	"MYSQL_ROOT_PASSWORD",
@@ -40,17 +40,17 @@ var forbiddenEnvVars = []string{
 }
 
 // Resource is the resource to use for hosting validating admission webhook.
-func (a *PerconaXtraDBValidator) Resource() (plural schema.GroupVersionResource, singular string) {
+func (a *ProxySQLValidator) Resource() (plural schema.GroupVersionResource, singular string) {
 	return schema.GroupVersionResource{
 			Group:    "validators.kubedb.com",
 			Version:  "v1alpha1",
-			Resource: "perconaxtradbvalidators",
+			Resource: "proxysqlvalidators",
 		},
-		"perconaxtradbvalidator"
+		"proxysqlvalidator"
 }
 
 // Initialize is called as a post-start hook
-func (a *PerconaXtraDBValidator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
+func (a *ProxySQLValidator) Initialize(config *rest.Config, stopCh <-chan struct{}) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -67,13 +67,13 @@ func (a *PerconaXtraDBValidator) Initialize(config *rest.Config, stopCh <-chan s
 }
 
 // Admit is called to decide whether to accept the admission request.
-func (a *PerconaXtraDBValidator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
+func (a *ProxySQLValidator) Admit(req *admission.AdmissionRequest) *admission.AdmissionResponse {
 	status := &admission.AdmissionResponse{}
 
 	if (req.Operation != admission.Create && req.Operation != admission.Update && req.Operation != admission.Delete) ||
 		len(req.SubResource) != 0 ||
 		req.Kind.Group != api.SchemeGroupVersion.Group ||
-		req.Kind.Kind != api.ResourceKindPerconaXtraDB {
+		req.Kind.Kind != api.ResourceKindProxySQL {
 		status.Allowed = true
 		return status
 	}
@@ -88,11 +88,9 @@ func (a *PerconaXtraDBValidator) Admit(req *admission.AdmissionRequest) *admissi
 	case admission.Delete:
 		if req.Name != "" {
 			// req.Object.Raw = nil, so read from kubernetes
-			obj, err := a.extClient.KubedbV1alpha1().PerconaXtraDBs(req.Namespace).Get(req.Name, metav1.GetOptions{})
+			_, err := a.extClient.KubedbV1alpha1().ProxySQLs(req.Namespace).Get(req.Name, metav1.GetOptions{})
 			if err != nil && !kerr.IsNotFound(err) {
 				return hookapi.StatusInternalServerError(err)
-			} else if err == nil && obj.Spec.TerminationPolicy == api.TerminationPolicyDoNotTerminate {
-				return hookapi.StatusBadRequest(fmt.Errorf(`proxysql "%v/%v" can't be paused. To delete, change spec.terminationPolicy`, req.Namespace, req.Name))
 			}
 		}
 	default:
@@ -107,20 +105,20 @@ func (a *PerconaXtraDBValidator) Admit(req *admission.AdmissionRequest) *admissi
 				return hookapi.StatusBadRequest(err)
 			}
 
-			px := obj.(*api.PerconaXtraDB).DeepCopy()
-			oldPXC := oldObject.(*api.PerconaXtraDB).DeepCopy()
-			oldPXC.SetDefaults()
+			proxysql := obj.(*api.ProxySQL).DeepCopy()
+			oldProxysql := oldObject.(*api.ProxySQL).DeepCopy()
+			oldProxysql.SetDefaults()
 			// Allow changing Database Secret only if there was no secret have set up yet.
-			if oldPXC.Spec.DatabaseSecret == nil {
-				oldPXC.Spec.DatabaseSecret = px.Spec.DatabaseSecret
+			if oldProxysql.Spec.ProxySQLSecret == nil {
+				oldProxysql.Spec.ProxySQLSecret = proxysql.Spec.ProxySQLSecret
 			}
 
-			if err := validateUpdate(px, oldPXC, req.Kind.Kind); err != nil {
+			if err := validateUpdate(proxysql, oldProxysql, req.Kind.Kind); err != nil {
 				return hookapi.StatusBadRequest(fmt.Errorf("%v", err))
 			}
 		}
 		// validate database specs
-		if err = ValidatePerconaXtraDB(a.client, a.extClient, obj.(*api.PerconaXtraDB), false); err != nil {
+		if err = ValidateProxySQL(a.client, a.extClient, obj.(*api.ProxySQL), false); err != nil {
 			return hookapi.StatusForbidden(err)
 		}
 	}
@@ -128,154 +126,108 @@ func (a *PerconaXtraDBValidator) Admit(req *admission.AdmissionRequest) *admissi
 	return status
 }
 
-// validatePXC checks whether the configurations for PerconaXtraDB Cluster are ok
-func validatePXC(px *api.PerconaXtraDB) error {
-	if px.Spec.PXC != nil {
-		if len(px.Name) > api.PerconaXtraDBMaxClusterNameLength {
-			return errors.Errorf(`'spec.px.clusterName' "%s" shouldn't have more than %d characters'`,
-				px.Name, api.PerconaXtraDBMaxClusterNameLength)
-		}
-		if *px.Spec.PXC.Proxysql.Replicas != 1 {
-			return errors.Errorf(`'spec.px.proxysql.replicas' "%v" is invalid. Currently, supported replicas for proxysql is 1`,
-				px.Spec.PXC.Proxysql.Replicas)
-		}
+// validateBackendWithMode checks whether the backend configurations for ProxySQL are ok
+func validateBackendWithMode(extClient cs.Interface, proxysql *api.ProxySQL) error {
+	if proxysql.Spec.Mode == nil {
+		return errors.New("'.spec.mode' is missing")
+	}
+	if mode := proxysql.Spec.Mode; *mode != api.LoadBalanceModeGalera &&
+		*mode != api.LoadBalanceModeGroupReplication {
+		return errors.Errorf("'.spec.mode' must be either %q or %q",
+			api.LoadBalanceModeGalera, api.LoadBalanceModeGroupReplication)
 	}
 
-	return nil
+	backend := proxysql.Spec.Backend
+	if backend == nil || backend.Replicas == nil || backend.Ref == nil || backend.Ref.APIGroup == nil {
+		return errors.New(`'.spec.backend' and all of its subfields are required`)
+	}
+
+	var err error
+	var requiredMode api.LoadBalanceMode
+	gk := schema.GroupKind{Group: *backend.Ref.APIGroup, Kind: backend.Ref.Kind}
+
+	switch gk {
+	case api.Kind(api.ResourceKindPerconaXtraDB):
+		requiredMode = api.LoadBalanceModeGalera
+		_, err = extClient.KubedbV1alpha1().PerconaXtraDBs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
+
+	case api.Kind(api.ResourceKindMySQL):
+		requiredMode = api.LoadBalanceModeGroupReplication
+		_, err = extClient.KubedbV1alpha1().MySQLs(proxysql.Namespace).Get(backend.Ref.Name, metav1.GetOptions{})
+
+	// TODO: add other cases for MySQL and MariaDB when they will be configured
+
+	default:
+		return errors.Errorf("invalid group kind '%v' is specified", gk.String())
+	}
+
+	if *proxysql.Spec.Mode != requiredMode {
+		return errors.Errorf("'.spec.mode' must be %q for %v",
+			requiredMode, backend.Ref.Kind)
+	}
+
+	if err != nil && kerr.IsNotFound(err) {
+		return errors.Errorf("%v object named '%v' is not found",
+			backend.Ref.Kind, backend.Ref.Name)
+	}
+	return errors.Wrapf(err, "failed to get %v object named '%v'",
+		backend.Ref.Kind, backend.Ref.Name)
 }
 
-// ValidatePerconaXtraDB checks if the object satisfies all the requirements.
+// ValidateProxySQL checks if the object satisfies all the requirements.
 // It is not method of Interface, because it is referenced from controller package too.
-func ValidatePerconaXtraDB(client kubernetes.Interface, extClient cs.Interface, px *api.PerconaXtraDB, strictValidation bool) error {
-	if px.Spec.Version == "" {
+func ValidateProxySQL(client kubernetes.Interface, extClient cs.Interface, proxysql *api.ProxySQL, strictValidation bool) error {
+	if proxysql.Spec.Version == "" {
 		return errors.New(`'spec.version' is missing`)
 	}
-	if pxVersion, err := extClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(px.Spec.Version), metav1.GetOptions{}); err != nil {
-		return err
-	} else if px.Spec.PXC != nil && pxVersion.Spec.Version != api.PerconaXtraDBClusterRecommendedVersion {
-		return errors.Errorf("unsupported version for xtradb cluster, recommended version is %s",
-			api.PerconaXtraDBClusterRecommendedVersion)
-	}
-
-	if px.Spec.Replicas == nil {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server, but for proxysql cluster, value must be greater than 0`,
-			px.Spec.Replicas)
-	}
-
-	if px.Spec.PXC == nil && *px.Spec.Replicas > api.PerconaXtraDBStandaloneReplicas {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be 1 for standalone proxysql server`,
-			px.Spec.Replicas)
-	}
-
-	if px.Spec.PXC != nil && *px.Spec.Replicas < api.PerconaXtraDBDefaultClusterSize {
-		return fmt.Errorf(`'spec.replicas' "%v" invalid. Value must be %d for xtradb cluster`,
-			px.Spec.Replicas, api.PerconaXtraDBDefaultClusterSize)
-	}
-
-	if err := validatePXC(px); err != nil {
+	var proxysqlVersion *catalog_api.ProxySQLVersion
+	var err error
+	if proxysqlVersion, err = extClient.CatalogV1alpha1().ProxySQLVersions().Get(string(proxysql.Spec.Version), metav1.GetOptions{}); err != nil {
 		return err
 	}
 
-	if err := amv.ValidateEnvVar(px.Spec.PodTemplate.Spec.Env, forbiddenEnvVars, api.ResourceKindPerconaXtraDB); err != nil {
+	if proxysql.Spec.Replicas == nil {
+		return errors.New("'.spec.replicas' is missing")
+	}
+
+	if *proxysql.Spec.Replicas != 1 {
+		return errors.Errorf(`'.spec.replicas' "%v" is invalid. Currently, supported replicas for proxysql is 1`,
+			*proxysql.Spec.Replicas)
+	}
+
+	if err = validateBackendWithMode(extClient, proxysql); err != nil {
 		return err
 	}
 
-	if px.Spec.StorageType == "" {
-		return fmt.Errorf(`'spec.storageType' is missing`)
-	}
-	if px.Spec.StorageType != api.StorageTypeDurable && px.Spec.StorageType != api.StorageTypeEphemeral {
-		return fmt.Errorf(`'spec.storageType' %s is invalid`, px.Spec.StorageType)
-	}
-	if err := amv.ValidateStorage(client, px.Spec.StorageType, px.Spec.Storage); err != nil {
+	if err = amv.ValidateEnvVar(proxysql.Spec.PodTemplate.Spec.Env, forbiddenEnvVars, api.ResourceKindProxySQL); err != nil {
 		return err
 	}
 
-	databaseSecret := px.Spec.DatabaseSecret
+	proxysqlSecret := proxysql.Spec.ProxySQLSecret
 
 	if strictValidation {
-		if databaseSecret != nil {
-			if _, err := client.CoreV1().Secrets(px.Namespace).Get(databaseSecret.SecretName, metav1.GetOptions{}); err != nil {
+		if proxysqlSecret != nil {
+			if _, err = client.CoreV1().Secrets(proxysql.Namespace).Get(proxysqlSecret.SecretName, metav1.GetOptions{}); err != nil {
 				return err
 			}
 		}
 
 		// Check if proxysql Version is deprecated.
 		// If deprecated, return error
-		pxVersion, err := extClient.CatalogV1alpha1().PerconaXtraDBVersions().Get(string(px.Spec.Version), metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-
-		if pxVersion.Spec.Deprecated {
-			return fmt.Errorf("proxysql %s/%s is using deprecated version %v. Skipped processing", px.Namespace, px.Name, pxVersion.Name)
+		if proxysqlVersion.Spec.Deprecated {
+			return fmt.Errorf("proxysql %s/%s is using deprecated version %v. Skipped processing", proxysql.Namespace, proxysql.Name, proxysqlVersion.Name)
 		}
 	}
 
-	if px.Spec.Init != nil &&
-		px.Spec.Init.SnapshotSource != nil &&
-		databaseSecret == nil {
-		return fmt.Errorf("for Snapshot init, 'spec.databaseSecret.secretName' of %v/%v needs to be similar to older database of snapshot %v/%v",
-			px.Namespace, px.Name, px.Spec.Init.SnapshotSource.Namespace, px.Spec.Init.SnapshotSource.Name)
-	}
-
-	if px.Spec.UpdateStrategy.Type == "" {
+	if proxysql.Spec.UpdateStrategy.Type == "" {
 		return fmt.Errorf(`'spec.updateStrategy.type' is missing`)
 	}
 
-	if px.Spec.TerminationPolicy == "" {
-		return fmt.Errorf(`'spec.terminationPolicy' is missing`)
-	}
-
-	if px.Spec.StorageType == api.StorageTypeEphemeral && px.Spec.TerminationPolicy == api.TerminationPolicyPause {
-		return fmt.Errorf(`'spec.terminationPolicy: Pause' can not be used for 'Ephemeral' storage`)
-	}
-
-	monitorSpec := px.Spec.Monitor
+	monitorSpec := proxysql.Spec.Monitor
 	if monitorSpec != nil {
-		if err := amv.ValidateMonitorSpec(monitorSpec); err != nil {
+		if err = amv.ValidateMonitorSpec(monitorSpec); err != nil {
 			return err
 		}
-	}
-
-	if err := matchWithDormantDatabase(extClient, px); err != nil {
-		return err
-	}
-	return nil
-}
-
-func matchWithDormantDatabase(extClient cs.Interface, px *api.PerconaXtraDB) error {
-	// Check if DormantDatabase exists or not
-	dormantDb, err := extClient.KubedbV1alpha1().DormantDatabases(px.Namespace).Get(px.Name, metav1.GetOptions{})
-	if err != nil {
-		if !kerr.IsNotFound(err) {
-			return err
-		}
-		return nil
-	}
-
-	// Check DatabaseKind
-	if value, _ := meta_util.GetStringValue(dormantDb.Labels, api.LabelDatabaseKind); value != api.ResourceKindPerconaXtraDB {
-		return errors.New(fmt.Sprintf(`invalid PerconaXtraDB: "%v/%v". Exists DormantDatabase "%v/%v" of different Kind`, px.Namespace, px.Name, dormantDb.Namespace, dormantDb.Name))
-	}
-
-	// Check Origin Spec
-	drmnOriginSpec := dormantDb.Spec.Origin.Spec.PerconaXtraDB
-	drmnOriginSpec.SetDefaults()
-	originalSpec := px.Spec
-
-	// Skip checking UpdateStrategy
-	drmnOriginSpec.UpdateStrategy = originalSpec.UpdateStrategy
-
-	// Skip checking TerminationPolicy
-	drmnOriginSpec.TerminationPolicy = originalSpec.TerminationPolicy
-
-	// Skip checking Monitoring
-	drmnOriginSpec.Monitor = originalSpec.Monitor
-
-	if !meta_util.Equal(drmnOriginSpec, &originalSpec) {
-		diff := meta_util.Diff(drmnOriginSpec, &originalSpec)
-		log.Errorf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff)
-		return errors.New(fmt.Sprintf("proxysql spec mismatches with OriginSpec in DormantDatabases. Diff: %v", diff))
 	}
 
 	return nil
@@ -310,8 +262,6 @@ func getPreconditionFunc() []mergepatch.PreconditionFunc {
 }
 
 var preconditionSpecFields = []string{
-	"spec.storageType",
-	"spec.storage",
 	"spec.databaseSecret",
 	"spec.init",
 	"spec.podTemplate.spec.nodeSelector",

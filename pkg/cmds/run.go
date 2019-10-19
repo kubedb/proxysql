@@ -11,11 +11,11 @@ import (
 )
 
 func NewCmdRun(version string, out, errOut io.Writer, stopCh <-chan struct{}) *cobra.Command {
-	o := server.NewPerconaXtraDBServerOptions(out, errOut)
+	o := server.NewProxySQLServerOptions(out, errOut)
 
 	cmd := &cobra.Command{
 		Use:               "run",
-		Short:             "Launch PerconaXtraDB server",
+		Short:             "Launch ProxySQL server",
 		DisableAutoGenTag: true,
 		PreRun: func(c *cobra.Command, args []string) {
 			cli.SendPeriodicAnalytics(c, version)

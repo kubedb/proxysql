@@ -89,9 +89,8 @@ func (f *Framework) RunOperatorAndServer(config *restclient.Config, kubeconfigPa
 	cmd := sh.Command(SetupServer, args...)
 	err = cmd.Run()
 	Expect(err).ShouldNot(HaveOccurred())
-
 	By("Starting Server and Operator")
-	serverOpt := server.NewPerconaXtraDBServerOptions(os.Stdout, os.Stderr)
+	serverOpt := server.NewProxySQLServerOptions(os.Stdout, os.Stderr)
 
 	serverOpt.RecommendedOptions.CoreAPI.CoreAPIKubeconfigPath = kubeconfigPath
 	serverOpt.RecommendedOptions.SecureServing.BindPort = 8443

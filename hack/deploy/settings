@@ -3,8 +3,7 @@ export APPSCODE_ENV=dev
 
 # kubedb/cli branch to checkout for installer script.
 # export CLI_BRANCH="master"
-export INSTALLER_BRANCH="pxc"
-
+export INSTALLER_BRANCH="proxysql-version"
 
 # provide CUSTOM_OPERATOR_TAG for kubedb installer.
 # if APPSCODE_ENV=dev then git_tag will be used as CUSTOM_OPERATOR_TAG

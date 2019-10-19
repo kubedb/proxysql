@@ -44,11 +44,69 @@ else
 fi
 
 source "$REPO_ROOT/hack/deploy/settings"
-source "$REPO_ROOT/hack/libbuild/common/lib.sh"
+#source "$REPO_ROOT/hack/libbuild/common/lib.sh"
 
 export KUBE_CA=$($ONESSL get kube-ca | $ONESSL base64)
 export APPSCODE_ENV=${APPSCODE_ENV:-prod}
 export KUBEDB_SCRIPT="curl -fsSL https://raw.githubusercontent.com/kubedb/installer/0.12.0/"
+
+inside_git_repo() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1
+  inside_git=$?
+  if [ "$inside_git" -ne 0 ]; then
+    echo "Not inside a git repository"
+    exit 1
+  fi
+}
+
+# Based on metadata() func in config.py
+detect_tag() {
+  inside_git_repo
+
+  # http://stackoverflow.com/a/1404862/3476121
+  git_tag=$(git describe --exact-match --abbrev=0 2>/dev/null || echo '')
+
+  commit_hash=$(git rev-parse --verify HEAD)
+  git_branch=$(git rev-parse --abbrev-ref HEAD)
+  commit_timestamp=$(git show -s --format=%ct)
+
+  if [ "$git_tag" != '' ]; then
+    TAG=$git_tag
+    TAG_STRATEGY='git_tag'
+  elif [ "$git_branch" != 'master' ] && [ "$git_branch" != 'HEAD' ] && [[ "$git_branch" != release-* ]]; then
+    TAG=$git_branch
+    TAG_STRATEGY='git_branch'
+  else
+    hash_ver=$(git describe --tags --always --dirty)
+    TAG="${hash_ver}"
+    TAG_STRATEGY='commit_hash'
+  fi
+
+  echo "TAG = $TAG"
+  echo "TAG_STRATEGY = $TAG_STRATEGY"
+  echo "git_tag = $git_tag"
+  echo "git_branch = $git_branch"
+  echo "commit_hash = $commit_hash"
+  echo "commit_timestamp = $commit_timestamp"
+
+  # write TAG info to a file so that it can be loaded by a different command or script
+  if [ $# -gt 0 ] && [ "$1" != '' ]; then
+    cat >"$1" <<EOL
+TAG=$TAG
+TAG_STRATEGY=$TAG_STRATEGY
+git_tag=$git_tag
+git_branch=$git_branch
+commit_hash=$commit_hash
+commit_timestamp=$commit_timestamp
+EOL
+  fi
+  export TAG
+  export TAG_STRATEGY
+  export git_tag
+  export git_branch
+  export commit_hash
+  export commit_timestamp
+}
 
 show_help() {
   echo "setup.sh - setup kubedb operator"
@@ -116,6 +174,7 @@ if [ "$APPSCODE_ENV" = "dev" ]; then
       git checkout $INSTALLER_BRANCH
     fi
     git pull --ff-only origin $INSTALLER_BRANCH #Pull update from remote only if there will be no conflict.
+    popd
   fi
 fi
 
@@ -137,7 +196,7 @@ if [ "$MINIKUBE" -eq 1 ]; then
   cat $INSTALLER_ROOT/deploy/kubedb-catalog/proxysql.yaml | $ONESSL envsubst | kubectl apply -f - || true
 
   if [ "$MINIKUBE_RUN" -eq 1 ]; then
-    $REPO_ROOT/hack/make.py
+    go build -o ~/go/bin/proxysql-operator cmd/proxysql-operator/*.go
     proxysql-operator run --v=4 \
       --secure-port=8443 \
       --enable-status-subresource=true \
