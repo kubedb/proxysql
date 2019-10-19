@@ -4,7 +4,6 @@ import (
 	"github.com/appscode/go/log"
 	core_util "kmodules.xyz/client-go/core/v1"
 	"kmodules.xyz/client-go/tools/queue"
-	"kubedb.dev/apimachinery/apis"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
@@ -13,7 +12,7 @@ func (c *Controller) initWatcher() {
 	c.proxysqlInformer = c.KubedbInformerFactory.Kubedb().V1alpha1().ProxySQLs().Informer()
 	c.proxysqlQueue = queue.New("ProxySQL", c.MaxNumRequeues, c.NumThreads, c.runProxySQL)
 	c.proxysqlLister = c.KubedbInformerFactory.Kubedb().V1alpha1().ProxySQLs().Lister()
-	c.proxysqlInformer.AddEventHandler(queue.NewObservableUpdateHandler(c.proxysqlQueue.GetQueue(), apis.EnableStatusSubresource))
+	c.proxysqlInformer.AddEventHandler(queue.NewObservableUpdateHandler(c.proxysqlQueue.GetQueue(), true))
 }
 
 func (c *Controller) runProxySQL(key string) error {

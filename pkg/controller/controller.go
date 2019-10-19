@@ -18,7 +18,6 @@ import (
 	apiext_util "kmodules.xyz/client-go/apiextensions/v1beta1"
 	meta_util "kmodules.xyz/client-go/meta"
 	"kmodules.xyz/client-go/tools/queue"
-	"kubedb.dev/apimachinery/apis"
 	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
@@ -154,7 +153,7 @@ func (c *Controller) pushFailureEvent(proxysql *api.ProxySQL, reason string) {
 		in.Reason = reason
 		in.ObservedGeneration = types.NewIntHash(proxysql.Generation, meta_util.GenerationHash(proxysql))
 		return in
-	}, apis.EnableStatusSubresource)
+	})
 
 	if err != nil {
 		c.recorder.Eventf(
