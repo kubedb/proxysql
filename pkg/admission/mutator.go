@@ -3,6 +3,9 @@ package admission
 import (
 	"sync"
 
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,8 +15,6 @@ import (
 	meta_util "kmodules.xyz/client-go/meta"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 )
 
 // ProxySQLMutator implements the AdmissionHook interface to mutate the ProxySQL resources

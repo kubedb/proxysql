@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"kubedb.dev/apimachinery/apis/kubedb"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
+
 	"github.com/appscode/go/crypto/rand"
 	jsonTypes "github.com/appscode/go/encoding/json/types"
 	"github.com/appscode/go/types"
@@ -11,9 +15,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kubedb.dev/apimachinery/apis/kubedb"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
 
 var (

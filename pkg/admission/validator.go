@@ -5,6 +5,11 @@ import (
 	"strings"
 	"sync"
 
+	catalog_api "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	amv "kubedb.dev/apimachinery/pkg/validator"
+
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
@@ -16,10 +21,6 @@ import (
 	"k8s.io/client-go/rest"
 	meta_util "kmodules.xyz/client-go/meta"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
-	catalog_api "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	cs "kubedb.dev/apimachinery/client/clientset/versioned"
-	amv "kubedb.dev/apimachinery/pkg/validator"
 )
 
 // ProxySQLValidator implements the AdmissionHook interface to validate the ProxySQL resources

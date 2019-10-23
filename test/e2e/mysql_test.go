@@ -3,14 +3,15 @@ package e2e_test
 import (
 	"fmt"
 
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	"kubedb.dev/proxysql/test/e2e/framework"
+	"kubedb.dev/proxysql/test/e2e/matcher"
+
 	"github.com/appscode/go/log"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/proxysql/test/e2e/framework"
-	"kubedb.dev/proxysql/test/e2e/matcher"
 )
 
 var _ = Describe("MySQL Group Replication Tests", func() {

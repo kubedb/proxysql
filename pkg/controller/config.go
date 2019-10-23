@@ -1,6 +1,10 @@
 package controller
 
 import (
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
+	amc "kubedb.dev/apimachinery/pkg/controller"
+	"kubedb.dev/apimachinery/pkg/eventer"
+
 	pcm "github.com/coreos/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	crd_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/client-go/dynamic"
@@ -8,9 +12,6 @@ import (
 	"k8s.io/client-go/rest"
 	reg_util "kmodules.xyz/client-go/admissionregistration/v1beta1"
 	"kmodules.xyz/client-go/discovery"
-	cs "kubedb.dev/apimachinery/client/clientset/versioned"
-	amc "kubedb.dev/apimachinery/pkg/controller"
-	"kubedb.dev/apimachinery/pkg/eventer"
 )
 
 const (
