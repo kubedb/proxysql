@@ -1,10 +1,10 @@
 ## proxysql-operator run
 
-Launch PerconaXtraDB server
+Launch ProxySQL server
 
 ### Synopsis
 
-Launch PerconaXtraDB server
+Launch ProxySQL server
 
 ```
 proxysql-operator run [flags]
@@ -58,7 +58,6 @@ proxysql-operator run [flags]
       --client-ca-file string                                   If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file is authenticated with an identity corresponding to the CommonName of the client certificate.
       --contention-profiling                                    Enable lock contention profiling, if profiling is enabled
       --enable-mutating-webhook                                 If true, enables mutating webhooks for KubeDB CRDs.
-      --enable-status-subresource                               If true, uses sub resource for KubeDB crds.
       --enable-validating-webhook                               If true, enables validating webhooks for KubeDB CRDs.
       --governing-service string                                Governing service for database statefulset (default "kubedb")
   -h, --help                                                    help for run
@@ -92,7 +91,7 @@ proxysql-operator run [flags]
       --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
       --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
       --log_dir string                   If non-empty, write log files in this directory
-      --logtostderr                      log to standard error instead of files
+      --logtostderr                      log to standard error instead of files (default true)
       --stderrthreshold severity         logs at or above this threshold go to stderr
       --use-kubeapiserver-fqdn-for-aks   if true, uses kube-apiserver FQDN for AKS cluster to workaround https://github.com/Azure/AKS/issues/522 (default true)
   -v, --v Level                          log level for V logs
