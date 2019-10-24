@@ -13,6 +13,7 @@ import (
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
 	"kmodules.xyz/client-go/meta"
@@ -24,7 +25,7 @@ import (
 )
 
 func init() {
-	scheme.AddToScheme(clientSetScheme.Scheme)
+	utilruntime.Must(scheme.AddToScheme(clientSetScheme.Scheme))
 }
 
 var requestKind = metav1.GroupVersionKind{

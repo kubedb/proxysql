@@ -138,10 +138,7 @@ func (f *Framework) EventuallyCreateDatabase(meta metav1.ObjectMeta, proxysql bo
 			defer en.Close()
 
 			_, err = en.Exec("CREATE DATABASE kubedb")
-			if err != nil {
-				return false
-			}
-			return true
+			return err == nil
 		},
 		time.Minute*10,
 		time.Second*20,

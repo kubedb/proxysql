@@ -16,10 +16,6 @@ import (
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 )
 
-var (
-	proxysqlPvcStorageSize = "50Mi"
-)
-
 func (f *Invocation) ProxySQL(backendObjName string) *api.ProxySQL {
 	mode := api.LoadBalanceModeGroupReplication
 
