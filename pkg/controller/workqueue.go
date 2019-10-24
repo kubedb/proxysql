@@ -36,7 +36,7 @@ func (c *Controller) runProxySQL(key string) error {
 					log.Errorln(err)
 					return err
 				}
-				proxysql, _, err = util.PatchProxySQL(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQL) *api.ProxySQL {
+				_, _, err = util.PatchProxySQL(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQL) *api.ProxySQL {
 					in.ObjectMeta = core_util.RemoveFinalizer(in.ObjectMeta, api.GenericKey)
 					return in
 				})

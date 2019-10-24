@@ -77,7 +77,7 @@ func (a *ProxySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admi
 	if err != nil {
 		return hookapi.StatusBadRequest(err)
 	}
-	proxysqlMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.ProxySQL).DeepCopy())
+	proxysqlMod, err := setDefaultValues(obj.(*api.ProxySQL).DeepCopy())
 	if err != nil {
 		return hookapi.StatusForbidden(err)
 	} else if proxysqlMod != nil {
@@ -95,7 +95,7 @@ func (a *ProxySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admi
 }
 
 // setDefaultValues provides the defaulting that is performed in mutating stage of creating/updating a MySQL database
-func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, proxysql *api.ProxySQL) (runtime.Object, error) {
+func setDefaultValues(proxysql *api.ProxySQL) (runtime.Object, error) {
 	if proxysql.Spec.Version == "" {
 		return nil, errors.New(`'spec.version' is missing`)
 	}
