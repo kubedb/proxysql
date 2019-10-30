@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright The KubeDB Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,25 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -eou pipefail
+FROM {ARG_FROM}
 
-export CGO_ENABLED=0
-export GO111MODULE=on
-export GOFLAGS="-mod=vendor"
+ADD bin/{ARG_OS}_{ARG_ARCH}/{ARG_BIN} /{ARG_BIN}
 
-TARGETS="$@"
+# This would be nicer as `nobody:nobody` but distroless has no such entries.
+USER 65535:65535
 
-echo "Running reimport.py"
-cmd="reimport3.py ${REPO_PKG} ${TARGETS}"
-$cmd
-echo
-
-echo "Running goimports:"
-cmd="goimports -w ${TARGETS}"
-echo $cmd; $cmd
-echo
-
-echo "Running gofmt:"
-cmd="gofmt -s -w ${TARGETS}"
-echo $cmd; $cmd
-echo
+ENTRYPOINT ["/{ARG_BIN}"]
