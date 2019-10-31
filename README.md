@@ -1,5 +1,5 @@
 [![Go Report Card](https://goreportcard.com/badge/kubedb.dev/proxysql)](https://goreportcard.com/report/kubedb.dev/proxysql)
-[![Build Status](https://travis-ci.org/kubedb/proxysql.svg?branch=master)](https://travis-ci.org/kubedb/proxysql)
+[![Build Status](https://github.com/kubedb/proxysql/workflows/CI/badge.svg)](https://github.com/kubedb/proxysql/actions?workflow=CI)
 [![codecov](https://codecov.io/gh/kubedb/proxysql/branch/master/graph/badge.svg)](https://codecov.io/gh/kubedb/proxysql)
 [![Slack](http://slack.kubernetes.io/badge.svg)](http://slack.kubernetes.io/#kubedb)
 [![mailing list](https://img.shields.io/badge/mailing_list-join-blue.svg)](https://groups.google.com/forum/#!forum/kubedb)
