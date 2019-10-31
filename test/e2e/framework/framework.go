@@ -31,9 +31,11 @@ var (
 	DockerRegistry      = "kubedbci"
 	SelfHostedOperator  = true
 	MySQLCatalogName    = "5.7-v2"
+	PerconaXtraDBCatalogName    = "5.7-cluster"
 	ProxySQLCatalogName = "2.0.4"
 
 	MySQLTest = true
+	PerconaXtraDBTest = true
 )
 
 type Framework struct {

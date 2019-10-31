@@ -64,9 +64,11 @@ func init() {
 	flag.StringVar(&storageClass, "storageclass", storageClass, "Kubernetes StorageClass name")
 	flag.StringVar(&framework.ProxySQLCatalogName, "proxysql-catalog", framework.ProxySQLCatalogName, "ProxySQL version")
 	flag.StringVar(&framework.MySQLCatalogName, "mysql-catalog", framework.MySQLCatalogName, "MySQL version")
+	flag.StringVar(&framework.PerconaXtraDBCatalogName, "percona-xtradb-catalog", framework.PerconaXtraDBCatalogName, "MySQL version")
 	flag.StringVar(&framework.DockerRegistry, "docker-registry", framework.DockerRegistry, "User provided docker repository")
 	flag.BoolVar(&framework.SelfHostedOperator, "selfhosted-operator", framework.SelfHostedOperator, "Enable this for provided controller")
-	flag.BoolVar(&framework.MySQLTest, "mysql", framework.SelfHostedOperator, "Enable ProxySQL test for MySQL")
+	flag.BoolVar(&framework.MySQLTest, "mysql", framework.MySQLTest, "Enable ProxySQL test for MySQL")
+	flag.BoolVar(&framework.PerconaXtraDBTest, "percona-xtradb", framework.PerconaXtraDBTest, "Enable ProxySQL test for PerconaXtraDB")
 }
 
 const (
