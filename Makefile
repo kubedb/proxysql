@@ -331,7 +331,7 @@ $(BUILD_DIRS):
 .PHONY: install-mysql-operator
 install-mysql-operator:
 	@cd ../installer; \
-	KUBEDB_OPERATOR_TAG=v0.6.0-rc.0 KUBEDB_CATALOG=mysql ./deploy/kubedb.sh --operator-name=my-operator --enable-validating-webhook=false --enable-mutating-webhook=false
+	APPSCODE_ENV=dev KUBEDB_OPERATOR_TAG=v0.6.0-rc.0 KUBEDB_CATALOG=mysql ./deploy/kubedb.sh --operator-name=my-operator --enable-validating-webhook=false --enable-mutating-webhook=false
 
 .PHONY: install
 install:

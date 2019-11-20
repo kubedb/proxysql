@@ -188,6 +188,12 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		writeTo_Primary_N_ReadFrom_EachMember(meta, primaryPodIndex, clusterSize)
 	}
 
+	var CheckProxySQLVersionForXtraDBCluster = func() {
+		if framework.ProxySQLCatalogName != "2.0.4" {
+			Skip("For XtraDB Cluster, currently supported ProxySQL version is '2.0.4'")
+		}
+	}
+
 	BeforeEach(func() {
 		f = root.Invoke()
 		mysql = f.MySQLGroup()
