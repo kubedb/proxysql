@@ -25,6 +25,9 @@ import (
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/reference"
+	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	core_util "kmodules.xyz/client-go/core/v1"
 )
 
 const (
@@ -58,6 +61,12 @@ func (c *Controller) createProxySQLSecret(proxysql *api.ProxySQL) (*core.SecretV
 	if err != nil {
 		return nil, err
 	}
+
+	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
+	if rerr != nil {
+		return nil, rerr
+	}
+
 	if sc == nil {
 		randProxysqlPassword := ""
 
@@ -68,6 +77,7 @@ func (c *Controller) createProxySQLSecret(proxysql *api.ProxySQL) (*core.SecretV
 		secret := &core.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   authSecretName,
+				Namespace: proxysql.Namespace,
 				Labels: proxysql.OffshootSelectors(),
 			},
 			Type: core.SecretTypeOpaque,
@@ -76,6 +86,8 @@ func (c *Controller) createProxySQLSecret(proxysql *api.ProxySQL) (*core.SecretV
 				api.ProxySQLPasswordKey: randProxysqlPassword,
 			},
 		}
+
+		core_util.EnsureOwnerReference(&secret.ObjectMeta, ref)
 
 		if _, err := c.Client.CoreV1().Secrets(proxysql.Namespace).Create(secret); err != nil {
 			return nil, err
