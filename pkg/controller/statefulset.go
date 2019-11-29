@@ -212,7 +212,7 @@ func upsertCustomConfig(template core.PodTemplateSpec, configSource *core.Volume
 	for i, container := range template.Spec.Containers {
 		if container.Name == api.ResourceSingularProxySQL {
 			configVolumeMount := core.VolumeMount{
-				Name:      "custom-config",
+				Name: "custom-config",
 				// TODO: need to replace with const `api.ProxySQLCustomConfigMountPath`
 				MountPath: "/etc/custom-config",
 			}

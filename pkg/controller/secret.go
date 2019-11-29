@@ -25,8 +25,8 @@ import (
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/reference"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/reference"
 	core_util "kmodules.xyz/client-go/core/v1"
 )
 
@@ -76,9 +76,9 @@ func (c *Controller) createProxySQLSecret(proxysql *api.ProxySQL) (*core.SecretV
 
 		secret := &core.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:   authSecretName,
+				Name:      authSecretName,
 				Namespace: proxysql.Namespace,
-				Labels: proxysql.OffshootSelectors(),
+				Labels:    proxysql.OffshootSelectors(),
 			},
 			Type: core.SecretTypeOpaque,
 			StringData: map[string]string{
