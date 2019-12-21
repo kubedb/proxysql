@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The KubeDB Authors.
+Copyright The KubeDB Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,14 +23,16 @@ import (
 	sync "sync"
 	time "time"
 
+	versioned "kubedb.dev/apimachinery/client/clientset/versioned"
+	catalog "kubedb.dev/apimachinery/client/informers/externalversions/catalog"
+	dba "kubedb.dev/apimachinery/client/informers/externalversions/dba"
+	internalinterfaces "kubedb.dev/apimachinery/client/informers/externalversions/internalinterfaces"
+	kubedb "kubedb.dev/apimachinery/client/informers/externalversions/kubedb"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	versioned "kubedb.dev/apimachinery/client/clientset/versioned"
-	catalog "kubedb.dev/apimachinery/client/informers/externalversions/catalog"
-	internalinterfaces "kubedb.dev/apimachinery/client/informers/externalversions/internalinterfaces"
-	kubedb "kubedb.dev/apimachinery/client/informers/externalversions/kubedb"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -174,11 +176,16 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Catalog() catalog.Interface
+	Dba() dba.Interface
 	Kubedb() kubedb.Interface
 }
 
 func (f *sharedInformerFactory) Catalog() catalog.Interface {
 	return catalog.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Dba() dba.Interface {
+	return dba.New(f, f.namespace, f.tweakListOptions)
 }
 
 func (f *sharedInformerFactory) Kubedb() kubedb.Interface {

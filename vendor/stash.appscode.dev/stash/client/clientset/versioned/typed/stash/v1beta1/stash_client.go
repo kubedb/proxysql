@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Stash Authors.
+Copyright The Stash Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,14 +19,15 @@ limitations under the License.
 package v1beta1
 
 import (
-	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	rest "k8s.io/client-go/rest"
 	v1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
 	"stash.appscode.dev/stash/client/clientset/versioned/scheme"
+
+	rest "k8s.io/client-go/rest"
 )
 
 type StashV1beta1Interface interface {
 	RESTClient() rest.Interface
+	BackupBatchesGetter
 	BackupBlueprintsGetter
 	BackupConfigurationsGetter
 	BackupSessionsGetter
@@ -38,6 +39,10 @@ type StashV1beta1Interface interface {
 // StashV1beta1Client is used to interact with features provided by the stash.appscode.com group.
 type StashV1beta1Client struct {
 	restClient rest.Interface
+}
+
+func (c *StashV1beta1Client) BackupBatches(namespace string) BackupBatchInterface {
+	return newBackupBatches(c, namespace)
 }
 
 func (c *StashV1beta1Client) BackupBlueprints() BackupBlueprintInterface {
@@ -96,7 +101,7 @@ func setConfigDefaults(config *rest.Config) error {
 	gv := v1beta1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

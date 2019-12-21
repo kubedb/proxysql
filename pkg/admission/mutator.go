@@ -1,7 +1,25 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package admission
 
 import (
 	"sync"
+
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 
 	"github.com/pkg/errors"
 	admission "k8s.io/api/admission/v1beta1"
@@ -12,8 +30,6 @@ import (
 	meta_util "kmodules.xyz/client-go/meta"
 	mona "kmodules.xyz/monitoring-agent-api/api/v1"
 	hookapi "kmodules.xyz/webhook-runtime/admission/v1beta1"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 )
 
 // ProxySQLMutator implements the AdmissionHook interface to mutate the ProxySQL resources
@@ -76,7 +92,7 @@ func (a *ProxySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admi
 	if err != nil {
 		return hookapi.StatusBadRequest(err)
 	}
-	proxysqlMod, err := setDefaultValues(a.client, a.extClient, obj.(*api.ProxySQL).DeepCopy())
+	proxysqlMod, err := setDefaultValues(obj.(*api.ProxySQL).DeepCopy())
 	if err != nil {
 		return hookapi.StatusForbidden(err)
 	} else if proxysqlMod != nil {
@@ -94,7 +110,7 @@ func (a *ProxySQLMutator) Admit(req *admission.AdmissionRequest) *admission.Admi
 }
 
 // setDefaultValues provides the defaulting that is performed in mutating stage of creating/updating a MySQL database
-func setDefaultValues(client kubernetes.Interface, extClient cs.Interface, proxysql *api.ProxySQL) (runtime.Object, error) {
+func setDefaultValues(proxysql *api.ProxySQL) (runtime.Object, error) {
 	if proxysql.Spec.Version == "" {
 		return nil, errors.New(`'spec.version' is missing`)
 	}

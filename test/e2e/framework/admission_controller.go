@@ -1,3 +1,18 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package framework
 
 import (
@@ -5,8 +20,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
+
+	"kubedb.dev/proxysql/pkg/cmds/server"
 
 	"github.com/appscode/go/log"
 	shell "github.com/codeskyblue/go-sh"
@@ -14,15 +30,11 @@ import (
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	kApi "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	kutil "kmodules.xyz/client-go"
 	admsn_kutil "kmodules.xyz/client-go/admissionregistration/v1beta1"
-	discovery_util "kmodules.xyz/client-go/discovery"
 	meta_util "kmodules.xyz/client-go/meta"
-	"kubedb.dev/apimachinery/apis"
-	"kubedb.dev/proxysql/pkg/cmds/server"
 )
 
 func (f *Framework) isApiSvcReady(apiSvcName string) error {
@@ -71,23 +83,13 @@ func (f *Framework) EventuallyAPIServiceReady() GomegaAsyncAssertion {
 func (f *Framework) RunOperatorAndServer(config *restclient.Config, kubeconfigPath string, stopCh <-chan struct{}) {
 	defer GinkgoRecover()
 
-	// Check and set EnableStatusSubresource=true for >=kubernetes v1.11
-	// Todo: remove this part and set EnableStatusSubresource=true automatically when subresources is must in kubedb.
-	discClient, err := discovery.NewDiscoveryClientForConfig(config)
-	Expect(err).NotTo(HaveOccurred())
-	serverVersion, err := discovery_util.GetBaseVersion(discClient)
-	Expect(err).NotTo(HaveOccurred())
-	if strings.Compare(serverVersion, "1.11") >= 0 {
-		apis.EnableStatusSubresource = true
-	}
-
 	sh := shell.NewSession()
 	args := []interface{}{"--minikube", fmt.Sprintf("--docker-registry=%v", DockerRegistry)}
 	SetupServer := filepath.Join("..", "..", "hack", "deploy", "setup.sh")
 
 	By("Creating API server and webhook stuffs")
 	cmd := sh.Command(SetupServer, args...)
-	err = cmd.Run()
+	err := cmd.Run()
 	Expect(err).ShouldNot(HaveOccurred())
 	By("Starting Server and Operator")
 	serverOpt := server.NewProxySQLServerOptions(os.Stdout, os.Stderr)

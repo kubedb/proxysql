@@ -1,20 +1,32 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package controller
 
 import (
-	"github.com/appscode/go/encoding/json/types"
-	"github.com/appscode/go/log"
-	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/reference"
-	kutil "kmodules.xyz/client-go"
-	dynamic_util "kmodules.xyz/client-go/dynamic"
-	meta_util "kmodules.xyz/client-go/meta"
-	"kubedb.dev/apimachinery/apis"
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 	"kubedb.dev/apimachinery/pkg/eventer"
 	validator "kubedb.dev/proxysql/pkg/admission"
+
+	"github.com/appscode/go/log"
+	core "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	kutil "kmodules.xyz/client-go"
+	dynamic_util "kmodules.xyz/client-go/dynamic"
 )
 
 func (c *Controller) create(proxysql *api.ProxySQL) error {
@@ -33,7 +45,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		proxysqlUpd, err := util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
 			in.Phase = api.DatabasePhaseCreating
 			return in
-		}, apis.EnableStatusSubresource)
+		})
 		if err != nil {
 			return err
 		}
@@ -45,11 +57,9 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return err
 	}
 
-	if c.EnableRBAC {
-		// Ensure ClusterRoles for statefulsets
-		if err := c.ensureRBACStuff(proxysql); err != nil {
-			return err
-		}
+	// Ensure ClusterRoles for statefulsets
+	if err := c.ensureRBACStuff(proxysql); err != nil {
+		return err
 	}
 
 	// ensure database Service
@@ -86,9 +96,9 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 
 	proxysqlUpd, err := util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
 		in.Phase = api.DatabasePhaseRunning
-		in.ObservedGeneration = types.NewIntHash(proxysql.Generation, meta_util.GenerationHash(proxysql))
+		in.ObservedGeneration = proxysql.Generation
 		return in
-	}, apis.EnableStatusSubresource)
+	})
 	if err != nil {
 		return err
 	}
@@ -123,10 +133,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 }
 
 func (c *Controller) terminate(proxysql *api.ProxySQL) error {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
-	if rerr != nil {
-		return rerr
-	}
+	owner := metav1.NewControllerRef(proxysql, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
 
 	// delete PVC
 	selector := labels.SelectorFromSet(proxysql.OffshootSelectors())
@@ -135,7 +142,7 @@ func (c *Controller) terminate(proxysql *api.ProxySQL) error {
 		core.SchemeGroupVersion.WithResource("persistentvolumeclaims"),
 		proxysql.Namespace,
 		selector,
-		ref); err != nil {
+		owner); err != nil {
 		return err
 	}
 

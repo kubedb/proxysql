@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Stash Authors.
+Copyright The Stash Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
 )
 
 // RestoreSessionLister helps list RestoreSessions.

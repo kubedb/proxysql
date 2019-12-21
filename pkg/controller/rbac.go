@@ -1,23 +1,35 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package controller
 
 import (
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+
 	core "k8s.io/api/core/v1"
 	policy_v1beta1 "k8s.io/api/policy/v1beta1"
 	rbac "k8s.io/api/rbac/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/reference"
 	core_util "kmodules.xyz/client-go/core/v1"
 	rbac_util "kmodules.xyz/client-go/rbac/v1beta1"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
 func (c *Controller) createServiceAccount(db *api.ProxySQL, saName string) error {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
-	if rerr != nil {
-		return rerr
-	}
+	owner := metav1.NewControllerRef(db, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
+
 	// Create new ServiceAccount
 	_, _, err := core_util.CreateOrPatchServiceAccount(
 		c.Client,
@@ -26,7 +38,7 @@ func (c *Controller) createServiceAccount(db *api.ProxySQL, saName string) error
 			Namespace: db.Namespace,
 		},
 		func(in *core.ServiceAccount) *core.ServiceAccount {
-			core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
+			core_util.EnsureOwnerReference(&in.ObjectMeta, owner)
 			in.Labels = db.OffshootLabels()
 			return in
 		},
@@ -35,10 +47,7 @@ func (c *Controller) createServiceAccount(db *api.ProxySQL, saName string) error
 }
 
 func (c *Controller) ensureRole(db *api.ProxySQL, name string, pspName string) error {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
-	if rerr != nil {
-		return rerr
-	}
+	owner := metav1.NewControllerRef(db, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
 
 	// Create new Role for ElasticSearch and it's Snapshot
 	_, _, err := rbac_util.CreateOrPatchRole(
@@ -48,7 +57,7 @@ func (c *Controller) ensureRole(db *api.ProxySQL, name string, pspName string) e
 			Namespace: db.Namespace,
 		},
 		func(in *rbac.Role) *rbac.Role {
-			core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
+			core_util.EnsureOwnerReference(&in.ObjectMeta, owner)
 			in.Labels = db.OffshootLabels()
 			in.Rules = []rbac.PolicyRule{}
 			if pspName != "" {
@@ -67,10 +76,8 @@ func (c *Controller) ensureRole(db *api.ProxySQL, name string, pspName string) e
 }
 
 func (c *Controller) createRoleBinding(db *api.ProxySQL, name string) error {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, db)
-	if rerr != nil {
-		return rerr
-	}
+	owner := metav1.NewControllerRef(db, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
+
 	// Ensure new RoleBindings for ElasticSearch and it's Snapshot
 	_, _, err := rbac_util.CreateOrPatchRoleBinding(
 		c.Client,
@@ -79,7 +86,7 @@ func (c *Controller) createRoleBinding(db *api.ProxySQL, name string) error {
 			Namespace: db.Namespace,
 		},
 		func(in *rbac.RoleBinding) *rbac.RoleBinding {
-			core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
+			core_util.EnsureOwnerReference(&in.ObjectMeta, owner)
 			in.Labels = db.OffshootLabels()
 			in.RoleRef = rbac.RoleRef{
 				APIGroup: rbac.GroupName,

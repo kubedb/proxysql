@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Stash Authors.
+Copyright The Stash Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@ import (
 	sync "sync"
 	time "time"
 
+	versioned "stash.appscode.dev/stash/client/clientset/versioned"
+	internalinterfaces "stash.appscode.dev/stash/client/informers/externalversions/internalinterfaces"
+	stash "stash.appscode.dev/stash/client/informers/externalversions/stash"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	versioned "stash.appscode.dev/stash/client/clientset/versioned"
-	internalinterfaces "stash.appscode.dev/stash/client/informers/externalversions/internalinterfaces"
-	stash "stash.appscode.dev/stash/client/informers/externalversions/stash"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Stash Authors.
+Copyright The Stash Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,14 +19,15 @@ limitations under the License.
 package scheme
 
 import (
+	repositoriesv1alpha1 "stash.appscode.dev/stash/apis/repositories/v1alpha1"
+	stashv1alpha1 "stash.appscode.dev/stash/apis/stash/v1alpha1"
+	stashv1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	repositoriesv1alpha1 "stash.appscode.dev/stash/apis/repositories/v1alpha1"
-	stashv1alpha1 "stash.appscode.dev/stash/apis/stash/v1alpha1"
-	stashv1beta1 "stash.appscode.dev/stash/apis/stash/v1beta1"
 )
 
 var Scheme = runtime.NewScheme()

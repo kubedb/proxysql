@@ -1,3 +1,18 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package framework
 
 import (
@@ -27,21 +42,21 @@ func (f *Framework) EventuallyAppBinding(meta metav1.ObjectMeta) GomegaAsyncAsse
 }
 
 func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta) error {
-	px, err := f.GetPerconaXtraDB(meta)
+	mysql, err := f.GetMySQL(meta)
 	Expect(err).NotTo(HaveOccurred())
 
-	appBinding, err := f.appCatalogClient.AppBindings(px.Namespace).Get(px.Name, metav1.GetOptions{})
+	appBinding, err := f.appCatalogClient.AppBindings(mysql.Namespace).Get(mysql.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	if appBinding.Spec.ClientConfig.Service == nil ||
-		appBinding.Spec.ClientConfig.Service.Name != px.ServiceName() ||
+		appBinding.Spec.ClientConfig.Service.Name != mysql.ServiceName() ||
 		appBinding.Spec.ClientConfig.Service.Port != 3306 {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	if appBinding.Spec.Secret == nil ||
-		appBinding.Spec.Secret.Name != px.Spec.DatabaseSecret.SecretName {
+		appBinding.Spec.Secret.Name != mysql.Spec.DatabaseSecret.SecretName {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	return nil

@@ -1,3 +1,18 @@
+/*
+Copyright The KubeDB Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package framework
 
 import (
@@ -5,22 +20,19 @@ import (
 	"strings"
 	"time"
 
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/client-go/tools/portforward"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 )
 
 type KubedbTable struct {
 	Id      int64
 	PodName string
-}
-
-func proxysqlName(perconaName string) string {
-	return perconaName + "-proxysql"
 }
 
 func (f *Framework) forwardPort(meta metav1.ObjectMeta, clientPodIndex, remotePort int) (*portforward.Tunnel, error) {
@@ -39,21 +51,34 @@ func (f *Framework) forwardPort(meta metav1.ObjectMeta, clientPodIndex, remotePo
 	return tunnel, nil
 }
 
-func (f *Framework) getPerconaXtraDBClient(meta metav1.ObjectMeta, tunnel *portforward.Tunnel, dbName string, proxysql bool) (*xorm.Engine, error) {
-	px, err := f.GetPerconaXtraDB(meta)
-	if err != nil {
-		return nil, err
-	}
-
+func (f *Framework) getMySQLClient(meta metav1.ObjectMeta, tunnel *portforward.Tunnel, dbName string, proxysql bool) (*xorm.Engine, error) {
 	var user, pass string
 	var userErr, passErr error
 
 	if !proxysql {
-		//user, userErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBUser)
-		//pass, passErr = f.GetMySQLCred(px, controller.KeyPerconaXtraDBPassword)
+		px, err := f.GetMySQL(meta)
+		if err != nil {
+			return nil, err
+		}
+		secretMeta := metav1.ObjectMeta{
+			Name:      px.Spec.DatabaseSecret.SecretName,
+			Namespace: px.Namespace,
+		}
+
+		user, userErr = f.GetSecretCred(secretMeta, api.MySQLUserKey)
+		pass, passErr = f.GetSecretCred(secretMeta, api.MySQLPasswordKey)
 	} else {
-		user, userErr = f.GetMySQLCred(px, api.ProxySQLUserKey)
-		pass, passErr = f.GetMySQLCred(px, api.ProxySQLPasswordKey)
+		psql, err := f.GetProxySQL(meta)
+		if err != nil {
+			return nil, err
+		}
+		secretMeta := metav1.ObjectMeta{
+			Name:      psql.Spec.ProxySQLSecret.SecretName,
+			Namespace: psql.Namespace,
+		}
+
+		user, userErr = f.GetSecretCred(secretMeta, api.ProxySQLUserKey)
+		pass, passErr = f.GetSecretCred(secretMeta, api.ProxySQLPasswordKey)
 	}
 	if userErr != nil {
 		return nil, userErr
@@ -62,55 +87,34 @@ func (f *Framework) getPerconaXtraDBClient(meta metav1.ObjectMeta, tunnel *portf
 		return nil, passErr
 	}
 
-	cnnstr := fmt.Sprintf("%v:%v@tcp(127.0.0.1:%v)/%s", user, pass, tunnel.Local, dbName)
-	return xorm.NewEngine("mysql", cnnstr)
-}
+	connStr := fmt.Sprintf("%v:%v@tcp(127.0.0.1:%v)/%s", user, pass, tunnel.Local, dbName)
 
-func (f *Framework) EventuallyDatabaseReady(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
-	return Eventually(
-		func() bool {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
-			if err != nil {
-				return false
-			}
-			defer tunnel.Close()
-			defer en.Close()
-
-			return true
-		},
-		time.Minute*10,
-		time.Second*20,
-	)
+	return xorm.NewEngine("mysql", connStr)
 }
 
 func (f *Framework) GetEngine(
-	pxMeta metav1.ObjectMeta, proxysql bool,
+	meta metav1.ObjectMeta, proxysql bool,
 	dbName string, forwardingPodIndex int) (*portforward.Tunnel, *xorm.Engine, error) {
 
 	var (
 		tunnel *portforward.Tunnel
 		en     *xorm.Engine
 		err    error
-		sts    *appsv1.StatefulSet
 		port   int
 	)
 	if proxysql {
 		port = 6033
-		sts, err = f.kubeClient.AppsV1().StatefulSets(pxMeta.Namespace).Get(proxysqlName(pxMeta.Name), metav1.GetOptions{})
 	} else {
 		port = 3306
-		sts, err = f.kubeClient.AppsV1().StatefulSets(pxMeta.Namespace).Get(pxMeta.Name, metav1.GetOptions{})
 	}
+	By(fmt.Sprintf("Name: %v, Namespace: %v, Port: %v", meta.Name, meta.Namespace, port))
+
+	tunnel, err = f.forwardPort(meta, forwardingPodIndex, port)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tunnel, err = f.forwardPort(sts.ObjectMeta, forwardingPodIndex, port)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	en, err = f.getPerconaXtraDBClient(pxMeta, tunnel, dbName, proxysql)
+	en, err = f.getMySQLClient(meta, tunnel, dbName, proxysql)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -122,20 +126,16 @@ func (f *Framework) GetEngine(
 	return tunnel, en, nil
 }
 
-func (f *Framework) EventuallyCreateDatabase(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyDatabaseReady(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
 			if err != nil {
 				return false
 			}
 			defer tunnel.Close()
 			defer en.Close()
 
-			_, err = en.Exec("CREATE DATABASE kubedb")
-			if err != nil {
-				return false
-			}
 			return true
 		},
 		time.Minute*10,
@@ -143,10 +143,28 @@ func (f *Framework) EventuallyCreateDatabase(pxMeta metav1.ObjectMeta, proxysql 
 	)
 }
 
-func (f *Framework) EventuallyCreateTable(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyCreateDatabase(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			if err != nil {
+				return false
+			}
+			defer tunnel.Close()
+			defer en.Close()
+
+			_, err = en.Exec("CREATE DATABASE kubedb")
+			return err == nil
+		},
+		time.Minute*10,
+		time.Second*20,
+	)
+}
+
+func (f *Framework) EventuallyCreateTable(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+	return Eventually(
+		func() bool {
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -163,14 +181,13 @@ func (f *Framework) EventuallyCreateTable(pxMeta metav1.ObjectMeta, proxysql boo
 		time.Minute*10,
 		time.Second*20,
 	)
-	return nil
 }
 
-func (f *Framework) EventuallyInsertRow(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex, rowsCntToInsert int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyInsertRow(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex, rowsCntToInsert int) GomegaAsyncAssertion {
 	count := 0
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -179,8 +196,7 @@ func (f *Framework) EventuallyInsertRow(pxMeta metav1.ObjectMeta, proxysql bool,
 
 			for i := count; i < rowsCntToInsert; i++ {
 				if _, err := en.Insert(&KubedbTable{
-					//Id:      int64(i),
-					PodName: fmt.Sprintf("%s-%v", pxMeta.Name, podIndex),
+					PodName: fmt.Sprintf("%s-%v", meta.Name, podIndex),
 				}); err != nil {
 					return false
 				}
@@ -191,13 +207,12 @@ func (f *Framework) EventuallyInsertRow(pxMeta metav1.ObjectMeta, proxysql bool,
 		time.Minute*10,
 		time.Second*10,
 	)
-	return nil
 }
 
-func (f *Framework) EventuallyCountRow(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyCountRow(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() int {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
 			if err != nil {
 				return -1
 			}
@@ -216,12 +231,12 @@ func (f *Framework) EventuallyCountRow(pxMeta metav1.ObjectMeta, proxysql bool, 
 	)
 }
 
-func (f *Framework) EventuallyPerconaXtraDBVariable(pxMeta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int, config string) GomegaAsyncAssertion {
+func (f *Framework) EventuallyMySQLVariable(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int, config string) GomegaAsyncAssertion {
 	configPair := strings.Split(config, "=")
 	sql := fmt.Sprintf("SHOW VARIABLES LIKE '%s';", configPair[0])
 	return Eventually(
 		func() []map[string][]byte {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
 			if err != nil {
 				return nil
 			}
