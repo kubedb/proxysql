@@ -50,9 +50,8 @@ var _ hookapi.AdmissionHook = &ProxySQLValidator{}
 
 var forbiddenEnvVars = []string{
 	"MYSQL_ROOT_PASSWORD",
-	"MYSQL_ALLOW_EMPTY_PASSWORD",
-	"MYSQL_RANDOM_ROOT_PASSWORD",
-	"MYSQL_ONETIME_PASSWORD",
+	"MYSQL_PROXY_USER",
+	"MYSQL_PROXY_PASSWORD",
 }
 
 // Resource is the resource to use for hosting validating admission webhook.
@@ -278,8 +277,7 @@ func getPreconditionFunc() []mergepatch.PreconditionFunc {
 }
 
 var preconditionSpecFields = []string{
-	"spec.databaseSecret",
-	"spec.init",
+	"spec.proxysqlSecret",
 	"spec.podTemplate.spec.nodeSelector",
 }
 

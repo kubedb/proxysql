@@ -114,6 +114,35 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 		peers = append(peers, backendDB.PeerName(i))
 	}
 
+	var monitorContainer *core.Container
+	if proxysql.GetMonitoringVendor() == mona.VendorPrometheus {
+		monitorContainer = &core.Container{
+			Name: "exporter",
+			Command: []string{
+				"/bin/sh",
+			},
+			Args: []string{
+				"-c",
+				// DATA_SOURCE_NAME=user:password@tcp(localhost:5555)/dbname
+				// ref: https://github.com/go-sql-driver/mysql#dsn-data-source-name
+				fmt.Sprintf(`export DATA_SOURCE_NAME="admin:admin@tcp(127.0.0.1:6032)/"
+						/bin/proxysql_exporter --web.listen-address=:%v --web.telemetry-path=%v %v`,
+					proxysql.Spec.Monitor.Prometheus.Port, proxysql.StatsService().Path(), strings.Join(proxysql.Spec.Monitor.Args, " ")),
+			},
+			Image: proxysqlVersion.Spec.Exporter.Image,
+			Ports: []core.ContainerPort{
+				{
+					Name:          api.PrometheusExporterPortName,
+					Protocol:      core.ProtocolTCP,
+					ContainerPort: proxysql.Spec.Monitor.Prometheus.Port,
+				},
+			},
+			Env:             proxysql.Spec.Monitor.Env,
+			Resources:       proxysql.Spec.Monitor.Resources,
+			SecurityContext: proxysql.Spec.Monitor.SecurityContext,
+		}
+	}
+
 	envList := []core.EnvVar{
 		{
 			Name: "MYSQL_ROOT_PASSWORD",
@@ -123,28 +152,6 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 						Name: backendDB.GetDatabaseSecretName(),
 					},
 					Key: api.MySQLPasswordKey,
-				},
-			},
-		},
-		{
-			Name: "MYSQL_PROXY_USER",
-			ValueFrom: &core.EnvVarSource{
-				SecretKeyRef: &core.SecretKeySelector{
-					LocalObjectReference: core.LocalObjectReference{
-						Name: proxysql.Spec.ProxySQLSecret.SecretName,
-					},
-					Key: api.ProxySQLUserKey,
-				},
-			},
-		},
-		{
-			Name: "MYSQL_PROXY_PASSWORD",
-			ValueFrom: &core.EnvVarSource{
-				SecretKeyRef: &core.SecretKeySelector{
-					LocalObjectReference: core.LocalObjectReference{
-						Name: proxysql.Spec.ProxySQLSecret.SecretName,
-					},
-					Key: api.ProxySQLPasswordKey,
 				},
 			},
 		},
@@ -159,22 +166,23 @@ func (c *Controller) ensureProxySQLNode(proxysql *api.ProxySQL) (kutil.VerbType,
 	}
 
 	opts := workloadOptions{
-		stsName:        proxysql.OffshootName(),
-		labels:         proxysql.OffshootLabels(),
-		selectors:      proxysql.OffshootSelectors(),
-		conatainerName: api.ResourceSingularProxySQL,
-		image:          proxysqlVersion.Spec.Proxysql.Image,
-		args:           nil,
-		cmd:            nil,
-		ports:          ports,
-		envList:        envList,
-		initContainers: nil,
-		gvrSvcName:     c.GoverningService,
-		podTemplate:    &proxysql.Spec.PodTemplate,
-		configSource:   proxysql.Spec.ConfigSource,
-		replicas:       proxysql.Spec.Replicas,
-		volume:         nil,
-		volumeMount:    nil,
+		stsName:          proxysql.OffshootName(),
+		labels:           proxysql.OffshootLabels(),
+		selectors:        proxysql.OffshootSelectors(),
+		conatainerName:   api.ResourceSingularProxySQL,
+		image:            proxysqlVersion.Spec.Proxysql.Image,
+		args:             nil,
+		cmd:              nil,
+		ports:            ports,
+		envList:          envList,
+		initContainers:   nil,
+		gvrSvcName:       c.GoverningService,
+		podTemplate:      &proxysql.Spec.PodTemplate,
+		configSource:     proxysql.Spec.ConfigSource,
+		replicas:         proxysql.Spec.Replicas,
+		volume:           nil,
+		volumeMount:      nil,
+		monitorContainer: monitorContainer,
 	}
 
 	return c.ensureStatefulSet(proxysql, proxysql.Spec.UpdateStrategy, opts)
@@ -202,8 +210,9 @@ func upsertCustomConfig(template core.PodTemplateSpec, configSource *core.Volume
 	for i, container := range template.Spec.Containers {
 		if container.Name == api.ResourceSingularProxySQL {
 			configVolumeMount := core.VolumeMount{
-				Name:      "custom-config",
-				MountPath: api.ProxySQLCustomConfigMountPath,
+				Name: "custom-config",
+				// TODO: need to replace with const `api.ProxySQLCustomConfigMountPath`
+				MountPath: "/etc/custom-config",
 			}
 			volumeMounts := container.VolumeMounts
 			volumeMounts = core_util.UpsertVolumeMount(volumeMounts, configVolumeMount)
@@ -297,6 +306,9 @@ func (c *Controller) ensureStatefulSet(
 				in.Spec.Template.Spec.Containers, *opts.monitorContainer)
 		}
 
+		// Set proxysql Secret as MYSQL_PROXY_USER and MYSQL_PROXY_PASSWORD env variable
+		in = upsertEnv(in, proxysql)
+
 		in.Spec.Template.Spec.Volumes = core_util.UpsertVolume(in.Spec.Template.Spec.Volumes, opts.volume...)
 
 		if opts.configSource != nil {
@@ -350,4 +362,39 @@ func (c *Controller) checkStatefulSetPodStatus(statefulSet *apps.StatefulSet) er
 		return err
 	}
 	return nil
+}
+
+func upsertEnv(statefulSet *apps.StatefulSet, proxysql *api.ProxySQL) *apps.StatefulSet {
+	for i, container := range statefulSet.Spec.Template.Spec.Containers {
+		if container.Name == api.ResourceSingularProxySQL || container.Name == "exporter" {
+			envs := []core.EnvVar{
+				{
+					Name: "MYSQL_PROXY_USER",
+					ValueFrom: &core.EnvVarSource{
+						SecretKeyRef: &core.SecretKeySelector{
+							LocalObjectReference: core.LocalObjectReference{
+								Name: proxysql.Spec.ProxySQLSecret.SecretName,
+							},
+							Key: api.ProxySQLUserKey,
+						},
+					},
+				},
+				{
+					Name: "MYSQL_PROXY_PASSWORD",
+					ValueFrom: &core.EnvVarSource{
+						SecretKeyRef: &core.SecretKeySelector{
+							LocalObjectReference: core.LocalObjectReference{
+								Name: proxysql.Spec.ProxySQLSecret.SecretName,
+							},
+							Key: api.ProxySQLPasswordKey,
+						},
+					},
+				},
+			}
+
+			statefulSet.Spec.Template.Spec.Containers[i].Env = core_util.UpsertEnvVars(container.Env, envs...)
+		}
+	}
+
+	return statefulSet
 }
