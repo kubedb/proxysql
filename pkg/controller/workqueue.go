@@ -28,7 +28,7 @@ func (c *Controller) initWatcher() {
 	c.proxysqlInformer = c.KubedbInformerFactory.Kubedb().V1alpha1().ProxySQLs().Informer()
 	c.proxysqlQueue = queue.New("ProxySQL", c.MaxNumRequeues, c.NumThreads, c.runProxySQL)
 	c.proxysqlLister = c.KubedbInformerFactory.Kubedb().V1alpha1().ProxySQLs().Lister()
-	c.proxysqlInformer.AddEventHandler(queue.NewObservableUpdateHandler(c.proxysqlQueue.GetQueue(), true))
+	c.proxysqlInformer.AddEventHandler(queue.NewReconcilableHandler(c.proxysqlQueue.GetQueue()))
 }
 
 func (c *Controller) runProxySQL(key string) error {

@@ -67,8 +67,8 @@ TAG              := $(VERSION)_$(OS)_$(ARCH)
 TAG_PROD         := $(TAG)
 TAG_DBG          := $(VERSION)-dbg_$(OS)_$(ARCH)
 
-GO_VERSION       ?= 1.12.12
-BUILD_IMAGE      ?= appscode/golang-dev:$(GO_VERSION)-stretch
+GO_VERSION       ?= 1.13.5
+BUILD_IMAGE      ?= appscode/golang-dev:$(GO_VERSION)
 
 OUTBIN = bin/$(OS)_$(ARCH)/$(BIN)
 ifeq ($(OS),windows)
@@ -330,31 +330,77 @@ lint: $(BUILD_DIRS)
 $(BUILD_DIRS):
 	@mkdir -p $@
 
-.PHONY: install-mysql-operator
-install-mysql-operator:
+REGISTRY_SECRET ?=
+
+ifeq ($(strip $(REGISTRY_SECRET)),)
+	IMAGE_PULL_SECRETS =
+else
+	IMAGE_PULL_SECRETS = --set imagePullSecrets[0]=$(REGISTRY_SECRET)
+endif
+
+.PHONY: mysql-install
+mysql-install:
 	@cd ../installer; \
-	KUBEDB_OPERATOR_TAG=v0.6.0-rc.0 KUBEDB_CATALOG=mysql ./deploy/kubedb.sh --operator-name=my-operator --enable-validating-webhook=false --enable-mutating-webhook=false
+	helm install kubedb-mysql charts/kubedb \
+		--namespace=kube-system \
+		--set kubedb.registry=$(REGISTRY) \
+		--set kubedb.repository=my-operator \
+		--set kubedb.tag=v0.6.0-rc.0 \
+		--set apiserver.enableMutatingWebhook=false \
+		--set apiserver.enableValidatingWebhook=false \
+		--set imagePullPolicy=Always \
+		$(IMAGE_PULL_SECRETS); \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=5m; \
+	helm install kubedb-mysql-catalog charts/kubedb-catalog \
+		--namespace=kube-system \
+		--set catalog.elasticsearch=false \
+		--set catalog.etcd=false \
+		--set catalog.memcached=false \
+		--set catalog.mongo=false \
+		--set catalog.mysql=true \
+		--set catalog.perconaxtradb=false \
+		--set catalog.pgbouncer=false \
+		--set catalog.postgres=false \
+		--set catalog.proxysql=false \
+		--set catalog.redis=false
 
 .PHONY: install
 install:
 	@cd ../installer; \
-	APPSCODE_ENV=dev KUBEDB_OPERATOR_TAG=$(TAG) KUBEDB_CATALOG=proxysql ./deploy/kubedb.sh --operator-name=$(BIN) --docker-registry=$(REGISTRY) --image-pull-secret=$(REGISTRY_SECRET)
-	@echo "updating validating and mutating webhooks"
-	kubectl apply -f ./hack/dev/webhook.yaml
+	helm install kubedb charts/kubedb \
+		--namespace=kube-system \
+		--set kubedb.registry=$(REGISTRY) \
+		--set kubedb.repository=proxysql-operator \
+		--set kubedb.tag=$(TAG) \
+		--set imagePullPolicy=Always \
+		$(IMAGE_PULL_SECRETS); \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=5m; \
+	kubectl wait --for=condition=Available apiservice -l app=kubedb --timeout=5m; \
+	helm install kubedb-catalog charts/kubedb-catalog \
+		--namespace=kube-system \
+		--set catalog.elasticsearch=false \
+		--set catalog.etcd=false \
+		--set catalog.memcached=false \
+		--set catalog.mongo=false \
+		--set catalog.mysql=false \
+		--set catalog.perconaxtradb=false \
+		--set catalog.pgbouncer=false \
+		--set catalog.postgres=false \
+		--set catalog.proxysql=true \
+		--set catalog.redis=false
 
 .PHONY: uninstall
 uninstall:
 	@cd ../installer; \
-	./deploy/kubedb.sh --uninstall
+	helm uninstall kubedb-catalog --namespace=kube-system || true; \
+	helm uninstall kubedb --namespace=kube-system || true
 
 .PHONY: purge
-purge:
-	@cd ../installer; \
-	./deploy/kubedb.sh --uninstall --purge
+purge: uninstall
+	kubectl delete crds -l app=kubedb
 
 .PHONY: dev
 dev: gen fmt push
-
 
 .PHONY: verify
 verify: verify-modules verify-gen

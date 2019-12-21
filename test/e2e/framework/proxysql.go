@@ -24,7 +24,6 @@ import (
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
 
 	"github.com/appscode/go/crypto/rand"
-	jsonTypes "github.com/appscode/go/encoding/json/types"
 	"github.com/appscode/go/types"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -44,7 +43,7 @@ func (f *Invocation) ProxySQL(backendObjName string) *api.ProxySQL {
 			},
 		},
 		Spec: api.ProxySQLSpec{
-			Version:  jsonTypes.StrYo(ProxySQLCatalogName),
+			Version:  ProxySQLCatalogName,
 			Replicas: types.Int32P(1),
 			Mode:     &mode,
 			Backend: &api.ProxySQLBackendSpec{

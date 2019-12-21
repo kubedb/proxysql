@@ -29,8 +29,6 @@ import (
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/reference"
 	kutil "kmodules.xyz/client-go"
 	app_util "kmodules.xyz/client-go/apps/v1"
 	core_util "kmodules.xyz/client-go/core/v1"
@@ -245,10 +243,7 @@ func (c *Controller) ensureStatefulSet(
 		Namespace: proxysql.Namespace,
 	}
 
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
-	if rerr != nil {
-		return kutil.VerbUnchanged, rerr
-	}
+	owner := metav1.NewControllerRef(proxysql, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
 
 	readinessProbe := pt.Spec.ReadinessProbe
 	if readinessProbe != nil && structs.IsZero(*readinessProbe) {
@@ -262,7 +257,7 @@ func (c *Controller) ensureStatefulSet(
 	statefulSet, vt, err := app_util.CreateOrPatchStatefulSet(c.Client, statefulSetMeta, func(in *apps.StatefulSet) *apps.StatefulSet {
 		in.Labels = opts.labels
 		in.Annotations = pt.Controller.Annotations
-		core_util.EnsureOwnerReference(&in.ObjectMeta, ref)
+		core_util.EnsureOwnerReference(&in.ObjectMeta, owner)
 
 		in.Spec.Replicas = opts.replicas
 		in.Spec.ServiceName = opts.gvrSvcName
@@ -318,11 +313,7 @@ func (c *Controller) ensureStatefulSet(
 		in.Spec.Template.Spec.PriorityClassName = pt.Spec.PriorityClassName
 		in.Spec.Template.Spec.Priority = pt.Spec.Priority
 		in.Spec.Template.Spec.SecurityContext = pt.Spec.SecurityContext
-
-		if c.EnableRBAC {
-			in.Spec.Template.Spec.ServiceAccountName = pt.Spec.ServiceAccountName
-		}
-
+		in.Spec.Template.Spec.ServiceAccountName = pt.Spec.ServiceAccountName
 		in.Spec.UpdateStrategy = updateStrategy
 		return in
 	})

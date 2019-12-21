@@ -14,12 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
 
     - name: Set up Docker Buildx
       id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v1
+      uses: crazy-max/ghaction-docker-buildx@master
       with:
         version: latest
 
@@ -28,7 +34,7 @@ jobs:
 
     - name: Run checks
       run: |
-        sudo apt-get -qq update
+        sudo apt-get -qq update || true
         sudo apt-get install -y bzr
         make ci
 
@@ -66,6 +72,9 @@ jobs:
         kubectl wait --for=condition=Ready pods -n local-path-storage --all --timeout=5m
         kubectl apply -f hack/kubernetes/storageclass/standard.yaml
         echo
+        echo "install helm 3"
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+        echo
         echo "create docker-registry secret"
         kubectl create secret docker-registry ${REGISTRY_SECRET} --namespace=kube-system --docker-server=https://index.docker.io/v1/ --docker-username=${USERNAME} --docker-password=${DOCKER_TOKEN}
 
@@ -79,8 +88,7 @@ jobs:
     - name: Install MySQL operator
       run: |
         export KUBECONFIG="$(kind get kubeconfig-path)"
-        pushd ../installer && git checkout v0.13.0-rc.0 && popd
-        make install-mysql-operator
+        make mysql-install
 
     - name: Run e2e tests
       env:
@@ -95,7 +103,6 @@ jobs:
         echo -n "$TEST_CREDENTIALS" > hack/config/.env
         echo >> hack/config/.env
         echo "GOOGLE_SERVICE_ACCOUNT_JSON_KEY=$(echo $GOOGLE_SERVICE_ACCOUNT_JSON_KEY)" >> hack/config/.env
-        pushd ../installer && git checkout proxysql && popd
         make install
         echo
         make e2e-tests

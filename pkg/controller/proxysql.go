@@ -21,15 +21,12 @@ import (
 	"kubedb.dev/apimachinery/pkg/eventer"
 	validator "kubedb.dev/proxysql/pkg/admission"
 
-	"github.com/appscode/go/encoding/json/types"
 	"github.com/appscode/go/log"
 	core "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/reference"
 	kutil "kmodules.xyz/client-go"
 	dynamic_util "kmodules.xyz/client-go/dynamic"
-	meta_util "kmodules.xyz/client-go/meta"
 )
 
 func (c *Controller) create(proxysql *api.ProxySQL) error {
@@ -60,11 +57,9 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 		return err
 	}
 
-	if c.EnableRBAC {
-		// Ensure ClusterRoles for statefulsets
-		if err := c.ensureRBACStuff(proxysql); err != nil {
-			return err
-		}
+	// Ensure ClusterRoles for statefulsets
+	if err := c.ensureRBACStuff(proxysql); err != nil {
+		return err
 	}
 
 	// ensure database Service
@@ -101,7 +96,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 
 	proxysqlUpd, err := util.UpdateProxySQLStatus(c.ExtClient.KubedbV1alpha1(), proxysql, func(in *api.ProxySQLStatus) *api.ProxySQLStatus {
 		in.Phase = api.DatabasePhaseRunning
-		in.ObservedGeneration = types.NewIntHash(proxysql.Generation, meta_util.GenerationHash(proxysql))
+		in.ObservedGeneration = proxysql.Generation
 		return in
 	})
 	if err != nil {
@@ -138,10 +133,7 @@ func (c *Controller) create(proxysql *api.ProxySQL) error {
 }
 
 func (c *Controller) terminate(proxysql *api.ProxySQL) error {
-	ref, rerr := reference.GetReference(clientsetscheme.Scheme, proxysql)
-	if rerr != nil {
-		return rerr
-	}
+	owner := metav1.NewControllerRef(proxysql, api.SchemeGroupVersion.WithKind(api.ResourceKindProxySQL))
 
 	// delete PVC
 	selector := labels.SelectorFromSet(proxysql.OffshootSelectors())
@@ -150,7 +142,7 @@ func (c *Controller) terminate(proxysql *api.ProxySQL) error {
 		core.SchemeGroupVersion.WithResource("persistentvolumeclaims"),
 		proxysql.Namespace,
 		selector,
-		ref); err != nil {
+		owner); err != nil {
 		return err
 	}
 
