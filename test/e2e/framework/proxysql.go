@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (f *Invocation) ProxySQL(backendObjName string) *api.ProxySQL {
+func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.ProxySQL {
 	mode := api.LoadBalanceModeGroupReplication
 
 	return &api.ProxySQL{
@@ -49,7 +49,7 @@ func (f *Invocation) ProxySQL(backendObjName string) *api.ProxySQL {
 			Backend: &api.ProxySQLBackendSpec{
 				Ref: &corev1.TypedLocalObjectReference{
 					APIGroup: types.StringP(kubedb.GroupName),
-					Kind:     api.ResourceKindMySQL,
+					Kind:     backendResourceKind,
 					Name:     backendObjName,
 				},
 				Replicas: types.Int32P(api.PerconaXtraDBDefaultClusterSize),
