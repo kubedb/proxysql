@@ -17,6 +17,7 @@ package framework
 
 import (
 	"fmt"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -30,7 +31,7 @@ func (f *Framework) EventuallyCheckCluster(
 
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(pxMeta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(pxMeta, proxysql, api.ResourceKindPerconaXtraDB, dbName, podIndex)
 			if err != nil {
 				return false
 			}

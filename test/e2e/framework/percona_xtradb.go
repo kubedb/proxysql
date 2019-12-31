@@ -24,14 +24,11 @@ import (
 
 	"github.com/appscode/go/crypto/rand"
 	"github.com/appscode/go/types"
-	"github.com/appscode/go/wait"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
-	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kutil "kmodules.xyz/client-go"
 )
 
 func (f *Invocation) PerconaXtraDB() *api.PerconaXtraDB {
@@ -72,46 +69,8 @@ func (f *Framework) GetPerconaXtraDB(meta metav1.ObjectMeta) (*api.PerconaXtraDB
 	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
 }
 
-func (f *Framework) PatchPerconaXtraDB(meta metav1.ObjectMeta, transform func(*api.PerconaXtraDB) *api.PerconaXtraDB) (*api.PerconaXtraDB, error) {
-	px, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	px, _, err = util.PatchPerconaXtraDB(f.dbClient.KubedbV1alpha1(), px, transform)
-	return px, err
-}
-
 func (f *Framework) DeletePerconaXtraDB(meta metav1.ObjectMeta) error {
 	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Delete(meta.Name, &metav1.DeleteOptions{})
-}
-
-func (f *Framework) EventuallyPerconaXtraDB(meta metav1.ObjectMeta) GomegaAsyncAssertion {
-	return Eventually(
-		func() bool {
-			_, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
-			if err != nil {
-				if kerr.IsNotFound(err) {
-					return false
-				}
-				Expect(err).NotTo(HaveOccurred())
-			}
-			return true
-		},
-		time.Minute*5,
-		time.Second*5,
-	)
-}
-
-func (f *Framework) EventuallyPerconaXtraDBPhase(meta metav1.ObjectMeta) GomegaAsyncAssertion {
-	return Eventually(
-		func() api.DatabasePhase {
-			db, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
-			Expect(err).NotTo(HaveOccurred())
-			return db.Status.Phase
-		},
-		time.Minute*5,
-		time.Second*5,
-	)
 }
 
 func (f *Framework) EventuallyPerconaXtraDBRunning(meta metav1.ObjectMeta) GomegaAsyncAssertion {
@@ -145,17 +104,3 @@ func (f *Framework) CleanPerconaXtraDB() {
 	}
 }
 
-func (f *Framework) WaitUntilPerconaXtraDBReplicasBePatched(meta metav1.ObjectMeta, count int32) error {
-	return wait.PollImmediate(kutil.RetryInterval, kutil.ReadinessTimeout, func() (bool, error) {
-		px, err := f.GetPerconaXtraDB(meta)
-		if err != nil {
-			return false, nil
-		}
-
-		if *px.Spec.Replicas != count {
-			return false, nil
-		}
-
-		return true, nil
-	})
-}

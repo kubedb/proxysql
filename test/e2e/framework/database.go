@@ -51,18 +51,35 @@ func (f *Framework) forwardPort(meta metav1.ObjectMeta, clientPodIndex, remotePo
 	return tunnel, nil
 }
 
-func (f *Framework) getMySQLClient(meta metav1.ObjectMeta, tunnel *portforward.Tunnel, dbName string, proxysql bool) (*xorm.Engine, error) {
+func (f *Framework) getMySQLClient(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, port int) (*xorm.Engine, error) {
 	var user, pass string
 	var userErr, passErr error
 
 	if !proxysql {
-		px, err := f.GetMySQL(meta)
-		if err != nil {
-			return nil, err
-		}
-		secretMeta := metav1.ObjectMeta{
-			Name:      px.Spec.DatabaseSecret.SecretName,
-			Namespace: px.Namespace,
+		var secretMeta metav1.ObjectMeta
+
+		if dbKind == api.ResourceKindMySQL {
+			my, err := f.GetMySQL(meta)
+			if err != nil {
+				return nil, err
+			}
+
+			secretMeta = metav1.ObjectMeta{
+				Name:      my.Spec.DatabaseSecret.SecretName,
+				Namespace: my.Namespace,
+			}
+		} else {
+			px, err := f.GetPerconaXtraDB(meta)
+			if err != nil {
+				return nil, err
+			}
+
+			secretMeta = metav1.ObjectMeta{
+				Name:      px.Spec.DatabaseSecret.SecretName,
+				Namespace: px.Namespace,
+			}
 		}
 
 		user, userErr = f.GetSecretCred(secretMeta, api.MySQLUserKey)
@@ -87,14 +104,15 @@ func (f *Framework) getMySQLClient(meta metav1.ObjectMeta, tunnel *portforward.T
 		return nil, passErr
 	}
 
-	connStr := fmt.Sprintf("%v:%v@tcp(127.0.0.1:%v)/%s", user, pass, tunnel.Local, dbName)
+	connStr := fmt.Sprintf("%v:%v@tcp(127.0.0.1:%v)/%s", user, pass, port, dbName)
+	fmt.Println(">>>>>>>>>>>>>>>>> conn str: ", connStr)
 
 	return xorm.NewEngine("mysql", connStr)
 }
 
 func (f *Framework) GetEngine(
 	meta metav1.ObjectMeta, proxysql bool,
-	dbName string, forwardingPodIndex int) (*portforward.Tunnel, *xorm.Engine, error) {
+	dbKind, dbName string, forwardingPodIndex int) (*portforward.Tunnel, *xorm.Engine, error) {
 
 	var (
 		tunnel *portforward.Tunnel
@@ -114,22 +132,26 @@ func (f *Framework) GetEngine(
 		return nil, nil, err
 	}
 
-	en, err = f.getMySQLClient(meta, tunnel, dbName, proxysql)
+	en, err = f.getMySQLClient(meta, proxysql, dbKind, dbName, tunnel.Local)
 	if err != nil {
+		fmt.Println(">>>>>>>>>>>>>>>>> err happened 01.")
 		return nil, nil, err
 	}
 
 	if err = en.Ping(); err != nil {
+		fmt.Println(">>>>>>>>>>>>>>>>> err happened 02.")
 		return nil, nil, err
 	}
 
 	return tunnel, en, nil
 }
 
-func (f *Framework) EventuallyDatabaseReady(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyDatabaseReady(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbKind, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -143,10 +165,12 @@ func (f *Framework) EventuallyDatabaseReady(meta metav1.ObjectMeta, proxysql boo
 	)
 }
 
-func (f *Framework) EventuallyCreateDatabase(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyCreateDatabase(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbKind, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -161,10 +185,12 @@ func (f *Framework) EventuallyCreateDatabase(meta metav1.ObjectMeta, proxysql bo
 	)
 }
 
-func (f *Framework) EventuallyCreateTable(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyCreateTable(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbKind, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -187,7 +213,7 @@ func (f *Framework) EventuallyInsertRow(meta metav1.ObjectMeta, proxysql bool, d
 	count := 0
 	return Eventually(
 		func() bool {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, api.ResourceKindPerconaXtraDB, dbName, podIndex)
 			if err != nil {
 				return false
 			}
@@ -209,10 +235,12 @@ func (f *Framework) EventuallyInsertRow(meta metav1.ObjectMeta, proxysql bool, d
 	)
 }
 
-func (f *Framework) EventuallyCountRow(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int) GomegaAsyncAssertion {
+func (f *Framework) EventuallyCountRow(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, podIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() int {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbKind, dbName, podIndex)
 			if err != nil {
 				return -1
 			}
@@ -231,12 +259,14 @@ func (f *Framework) EventuallyCountRow(meta metav1.ObjectMeta, proxysql bool, db
 	)
 }
 
-func (f *Framework) EventuallyMySQLVariable(meta metav1.ObjectMeta, proxysql bool, dbName string, podIndex int, config string) GomegaAsyncAssertion {
+func (f *Framework) EventuallyMySQLVariable(
+	meta metav1.ObjectMeta, proxysql bool,
+	dbKind, dbName string, podIndex int, config string) GomegaAsyncAssertion {
 	configPair := strings.Split(config, "=")
 	sql := fmt.Sprintf("SHOW VARIABLES LIKE '%s';", configPair[0])
 	return Eventually(
 		func() []map[string][]byte {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, podIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, dbKind, dbName, podIndex)
 			if err != nil {
 				return nil
 			}

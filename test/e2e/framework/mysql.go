@@ -32,7 +32,6 @@ import (
 )
 
 var (
-	JobPvcStorageSize = "2Gi"
 	DBPvcStorageSize  = "1Gi"
 )
 

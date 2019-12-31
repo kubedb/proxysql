@@ -16,6 +16,7 @@ limitations under the License.
 package framework
 
 import (
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"strconv"
 	"time"
 
@@ -26,7 +27,7 @@ import (
 func (f *Framework) EventuallyONLINEMembersCount(meta metav1.ObjectMeta, proxysql bool, dbName string, clientPodIndex int) GomegaAsyncAssertion {
 	return Eventually(
 		func() int {
-			tunnel, en, err := f.GetEngine(meta, proxysql, dbName, clientPodIndex)
+			tunnel, en, err := f.GetEngine(meta, proxysql, api.ResourceKindMySQL, dbName, clientPodIndex)
 			if err != nil {
 				return -1
 			}
@@ -46,7 +47,7 @@ func (f *Framework) EventuallyONLINEMembersCount(meta metav1.ObjectMeta, proxysq
 }
 
 func (f *Framework) GetPrimaryHostIndex(meta metav1.ObjectMeta, proxysql bool, dbName string, clientPodIndex int) int {
-	tunnel, en, err := f.GetEngine(meta, proxysql, dbName, clientPodIndex)
+	tunnel, en, err := f.GetEngine(meta, proxysql, api.ResourceKindMySQL, dbName, clientPodIndex)
 	if err != nil {
 		return -1
 	}

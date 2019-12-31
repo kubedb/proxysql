@@ -138,6 +138,8 @@ var _ = AfterSuite(func() {
 	}
 	By("Delete left over MySQL objects")
 	root.CleanMySQL()
+	By("Delete left over PerconaXtraDB objects")
+	root.CleanPerconaXtraDB()
 	By("Delete left over ProxySQL objects")
 	root.CleanProxySQL()
 	By("Delete left over Dormant Database objects")

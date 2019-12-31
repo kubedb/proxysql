@@ -32,7 +32,13 @@ import (
 )
 
 func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.ProxySQL {
-	mode := api.LoadBalanceModeGroupReplication
+	var mode api.LoadBalanceMode
+
+	if backendResourceKind == api.ResourceKindMySQL {
+		mode = api.LoadBalanceModeGroupReplication
+	} else {
+		mode = api.LoadBalanceModeGalera
+	}
 
 	return &api.ProxySQL{
 		ObjectMeta: metav1.ObjectMeta{

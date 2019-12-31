@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-var _ = Describe("MySQL Group Replication Tests", func() {
+var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 	var (
 		err          error
 		f            *framework.Invocation
@@ -42,11 +42,11 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		f.EventuallyAppBinding(px.ObjectMeta).Should(BeTrue())
 
 		By("Check valid AppBinding Specs")
-		err := f.CheckAppBindingSpec(px.ObjectMeta)
+		err := f.CheckAppBindingSpec(px.ObjectMeta, api.ResourceKindPerconaXtraDB)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Waiting for database to be ready")
-		f.EventuallyDatabaseReady(px.ObjectMeta, proxysqlFlag, dbName, 0).Should(BeTrue())
+		f.EventuallyDatabaseReady(px.ObjectMeta, proxysqlFlag, api.ResourceKindPerconaXtraDB, dbName, 0).Should(BeTrue())
 	}
 
 	var deletePerconaXtraDBResource = func() {
@@ -149,7 +149,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 	var countRows = func(meta metav1.ObjectMeta, podIndex, expectedRowCnt int) {
 		By(fmt.Sprintf("Read row from member '%s-%d'", meta.Name, podIndex))
-		f.EventuallyCountRow(meta, proxysqlFlag, dbNameKubedb, podIndex).Should(Equal(expectedRowCnt))
+		f.EventuallyCountRow(meta, proxysqlFlag, api.ResourceKindPerconaXtraDB, dbNameKubedb, podIndex).Should(Equal(expectedRowCnt))
 	}
 
 	var insertRows = func(meta metav1.ObjectMeta, podIndex, rowCntToInsert int) {
@@ -159,10 +159,10 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 	var create_Database_N_Table = func(meta metav1.ObjectMeta, podIndex int) {
 		By("Create Database")
-		f.EventuallyCreateDatabase(meta, proxysqlFlag, dbName, podIndex).Should(BeTrue())
+		f.EventuallyCreateDatabase(meta, proxysqlFlag, api.ResourceKindPerconaXtraDB, dbName, podIndex).Should(BeTrue())
 
 		By("Create Table")
-		f.EventuallyCreateTable(meta, proxysqlFlag, dbNameKubedb, podIndex).Should(BeTrue())
+		f.EventuallyCreateTable(meta, proxysqlFlag, api.ResourceKindPerconaXtraDB, dbNameKubedb, podIndex).Should(BeTrue())
 	}
 
 	var readFromEachMember = func(meta metav1.ObjectMeta, clusterSize, rowCnt int) {
@@ -204,13 +204,13 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 	var CheckProxySQLVersion = func() {
 		if framework.ProxySQLCatalogName != "2.0.4" {
-			Skip("For XtraDB Cluster, currently supported proxysql version is '2.0.4'")
+			Skip("ProxySQL version must be '2.0.4'")
 		}
 	}
 
 	var CheckPerconaXtraDBVersion = func() {
-		if framework.ProxySQLCatalogName != "5.7-cluster" {
-			Skip("For XtraDB Cluster, currently supported DB version is '5.7-cluster'")
+		if framework.PerconaXtraDBCatalogName != "5.7-cluster" {
+			Skip("PerconaXtraDB version must be '5.7-cluster'")
 		}
 	}
 
@@ -218,7 +218,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		f = root.Invoke()
 		px = f.PerconaXtraDB()
 		garbagePX = new(api.PerconaXtraDBList)
-		dbName = "px"
+		dbName = "mysql"
 		dbNameKubedb = "kubedb"
 		proxysqlFlag = false
 	})
