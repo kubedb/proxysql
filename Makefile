@@ -338,6 +338,8 @@ else
 	IMAGE_PULL_SECRETS = --set imagePullSecrets[0]=$(REGISTRY_SECRET)
 endif
 
+MYSQL_TAG ?= v0.6.0-rc.0
+
 .PHONY: mysql-install
 mysql-install:
 	@cd ../installer; \
@@ -345,7 +347,7 @@ mysql-install:
 		--namespace=kube-system \
 		--set kubedb.registry=$(REGISTRY) \
 		--set kubedb.repository=my-operator \
-		--set kubedb.tag=v0.6.0-rc.0 \
+		--set kubedb.tag=$(MYSQL_TAG) \
 		--set apiserver.enableMutatingWebhook=false \
 		--set apiserver.enableValidatingWebhook=false \
 		--set imagePullPolicy=Always \
@@ -359,6 +361,34 @@ mysql-install:
 		--set catalog.mongo=false \
 		--set catalog.mysql=true \
 		--set catalog.perconaxtradb=false \
+		--set catalog.pgbouncer=false \
+		--set catalog.postgres=false \
+		--set catalog.proxysql=false \
+		--set catalog.redis=false
+
+PERCONA_XTRADB_TAG ?= v0.6.0-rc.0
+
+.PHONY: percona-xtradb-install
+percona-xtradb-install:
+	@cd ../installer; \
+	helm install kubedb-percona-xtradb charts/kubedb \
+		--namespace=kube-system \
+		--set kubedb.registry=$(REGISTRY) \
+		--set kubedb.repository=percona-xtradb-operator \
+		--set kubedb.tag=$(PERCONA_XTRADB_TAG) \
+		--set apiserver.enableMutatingWebhook=false \
+		--set apiserver.enableValidatingWebhook=false \
+		--set imagePullPolicy=Always \
+		$(IMAGE_PULL_SECRETS); \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=5m; \
+	helm install kubedb-percona-xtradb-catalog charts/kubedb-catalog \
+		--namespace=kube-system \
+		--set catalog.elasticsearch=false \
+		--set catalog.etcd=false \
+		--set catalog.memcached=false \
+		--set catalog.mongo=false \
+		--set catalog.mysql=false \
+		--set catalog.perconaxtradb=true \
 		--set catalog.pgbouncer=false \
 		--set catalog.postgres=false \
 		--set catalog.proxysql=false \
