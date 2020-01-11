@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	DBPvcStorageSize  = "1Gi"
+	DBPvcStorageSize = "1Gi"
 )
 
 func (f *Invocation) MySQL() *api.MySQL {

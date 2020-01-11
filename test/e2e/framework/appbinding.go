@@ -17,8 +17,9 @@ package framework
 
 import (
 	"fmt"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"time"
+
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"

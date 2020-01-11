@@ -103,4 +103,3 @@ func (f *Framework) CleanPerconaXtraDB() {
 		fmt.Printf("error in deletion of PerconaXtraDB. Error: %v", err)
 	}
 }
-

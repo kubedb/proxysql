@@ -203,7 +203,6 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		writeTo_Primary_N_ReadFrom_EachMember(meta, primaryPodIndex, clusterSize)
 	}
 
-
 	var CheckProxySQLVersion = func() {
 		if framework.ProxySQLCatalogName != "2.0.4" {
 			Skip("ProxySQL version must be '2.0.4'")

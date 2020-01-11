@@ -16,9 +16,10 @@ limitations under the License.
 package framework
 
 import (
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"strconv"
 	"time"
+
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
