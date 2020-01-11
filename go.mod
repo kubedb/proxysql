@@ -22,10 +22,10 @@ require (
 	k8s.io/kube-aggregator v0.0.0-20191114103820-f023614fb9ea
 	kmodules.xyz/client-go v0.0.0-20191219184245-880ab4b0e5db
 	kmodules.xyz/custom-resources v0.0.0-20191130062942-f41b54f62419
-	kmodules.xyz/monitoring-agent-api v0.0.0-20191209232713-25b3711f847f
+	kmodules.xyz/monitoring-agent-api v0.0.0-20191223205013-784042d6a958
 	kmodules.xyz/offshoot-api v0.0.0-20191204032627-ee9a85c51ab3
 	kmodules.xyz/webhook-runtime v0.0.0-20191127075323-d4bfdee6974d
-	kubedb.dev/apimachinery v0.13.0-rc.2.0.20191221024943-29ed98ef1f22
+	kubedb.dev/apimachinery v0.13.0-rc.2.0.20191227075549-8ef15652d3ed
 	stash.appscode.dev/stash v0.9.0-rc.2.0.20191220142029-ca6885400de1
 )
 

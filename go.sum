@@ -728,8 +728,8 @@ kmodules.xyz/constants v0.0.0-20191024095500-cd4313df4aa6/go.mod h1:DbiFk1bJ1KEO
 kmodules.xyz/crd-schema-fuzz v0.0.0-20191129174258-81f984340891/go.mod h1:9NXNZ4xhqof0WngtIuo4vl+WoCQpLJEJcyuEo3mPpiM=
 kmodules.xyz/custom-resources v0.0.0-20191130062942-f41b54f62419 h1:o6KD8XMxdyRR3rqScTsWvcufFDT7vQBnYXpHUp6UtRg=
 kmodules.xyz/custom-resources v0.0.0-20191130062942-f41b54f62419/go.mod h1:EksiAQK3p3bVU5cNBjLT0z5V7er1tvWLBWILTuf6G/0=
-kmodules.xyz/monitoring-agent-api v0.0.0-20191209232713-25b3711f847f h1:6Nx6TOdEorxFB2THg2TuWJLpp13/ue2BIa0p72L57ok=
-kmodules.xyz/monitoring-agent-api v0.0.0-20191209232713-25b3711f847f/go.mod h1:q5Adit2fxEoY1jSkYiK1t856Ombl8cunYJBmgL43wwc=
+kmodules.xyz/monitoring-agent-api v0.0.0-20191223205013-784042d6a958 h1:Ctoy2Rx2O3lCfxGBo4cPshopqo/2gJ+oXx/M45GxOEs=
+kmodules.xyz/monitoring-agent-api v0.0.0-20191223205013-784042d6a958/go.mod h1:q5Adit2fxEoY1jSkYiK1t856Ombl8cunYJBmgL43wwc=
 kmodules.xyz/objectstore-api v0.0.0-20191127144749-5881939b57f0 h1:ilgkGU/bteKRvH99piXxU8b2c1E9lwxb0sDpLLhy4iY=
 kmodules.xyz/objectstore-api v0.0.0-20191127144749-5881939b57f0/go.mod h1:AE1rz+T/3dlUwH5pLgCNghWeeFfeVBnBXKJVpsLHlmc=
 kmodules.xyz/offshoot-api v0.0.0-20191204032627-ee9a85c51ab3 h1:DW3lX0hZzx14WTNCU+RTWU2eKZ4xbKpUvYVy6S5OtBc=
@@ -740,8 +740,8 @@ kmodules.xyz/prober v0.0.0-20191216013129-7c91e2b0edb2 h1:wxHidC0FZfaHTRG8ADG9qd
 kmodules.xyz/prober v0.0.0-20191216013129-7c91e2b0edb2/go.mod h1:YdapXw+AMO1U/yYZloDA0dTiha89Rv1iqK05Jh7qQQY=
 kmodules.xyz/webhook-runtime v0.0.0-20191127075323-d4bfdee6974d h1:qLWf0Xk2sAWT9qWBcodkinrzt0jkYTKhuHCsbwpXutE=
 kmodules.xyz/webhook-runtime v0.0.0-20191127075323-d4bfdee6974d/go.mod h1:aaaxyAmKOpw0ey3LrpBkqWq0LTl35f9PW6mhwVDBMow=
-kubedb.dev/apimachinery v0.13.0-rc.2.0.20191221024943-29ed98ef1f22 h1:jv2PSoxfP1/zEwyyEs0dkInElpoPlTPJWFYHH8//2W0=
-kubedb.dev/apimachinery v0.13.0-rc.2.0.20191221024943-29ed98ef1f22/go.mod h1:Vcrhufh0TY2iIpBct1TzR7WGHNJgWi2k/m2m7RY/cc0=
+kubedb.dev/apimachinery v0.13.0-rc.2.0.20191227075549-8ef15652d3ed h1:2bv9z3cHhmjxkq0cAOjWJS+0O8hxbmRujqZkgpLuwNY=
+kubedb.dev/apimachinery v0.13.0-rc.2.0.20191227075549-8ef15652d3ed/go.mod h1:/jqK85GmaO8piJMBVBrxQ9oFsnHuKsHMRiOLCxGMkrU=
 modernc.org/cc v1.0.0/go.mod h1:1Sk4//wdnYJiUIxnW8ddKpaOJCF37yAdqYnkxUpaYxw=
 modernc.org/golex v1.0.0/go.mod h1:b/QX9oBD/LhixY6NDh+IdGv17hgB+51fET1i2kPSmvk=
 modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03k=
