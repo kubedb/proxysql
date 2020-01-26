@@ -58,12 +58,12 @@ func (f *Framework) EventuallyDormantDatabaseStatus(meta metav1.ObjectMeta) Gome
 	)
 }
 
-func (f *Framework) EventuallyWipedOutMySQL(meta metav1.ObjectMeta) GomegaAsyncAssertion {
+func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceKind string) GomegaAsyncAssertion {
 	return Eventually(
 		func() error {
 			labelMap := map[string]string{
 				api.LabelDatabaseName: meta.Name,
-				api.LabelDatabaseKind: api.ResourceKindMySQL,
+				api.LabelDatabaseKind: resourceKind,
 			}
 			labelSelector := labels.SelectorFromSet(labelMap)
 

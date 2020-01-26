@@ -18,6 +18,7 @@ package framework
 import (
 	"fmt"
 
+	shell "github.com/codeskyblue/go-sh"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -48,5 +49,62 @@ func (f *Framework) CleanWorkloadLeftOvers(labelselector map[string]string) {
 		LabelSelector: labels.SelectorFromSet(labelselector).String(),
 	}); err != nil && !kerr.IsNotFound(err) {
 		fmt.Printf("error in deletion of Secret. Error: %v", err)
+	}
+}
+
+func (f *Framework) PrintDebugHelpers(myName, pxName string, myReplicas, pxReplicas int) {
+	sh := shell.NewSession()
+
+	fmt.Println("\n======================================[ Apiservices ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "get", "apiservice", "v1alpha1.mutators.kubedb.com", "-o=jsonpath=\"{.status}\"").Run(); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println()
+	if err := sh.Command("/usr/bin/kubectl", "get", "apiservice", "v1alpha1.validators.kubedb.com", "-o=jsonpath=\"{.status}\"").Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ Describe Job ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "job", "-n", f.Namespace()).Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ Describe Pod ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "po", "-n", f.Namespace()).Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ Describe ProxySQL ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "proxysql", "-n", f.Namespace()).Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ Describe MySQL ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "mysql", "-n", f.Namespace()).Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ MySQL Server Log ]===================================================")
+	for i := 0; i < myReplicas; i++ {
+		if err := sh.Command("/usr/bin/kubectl", "logs", fmt.Sprintf("%s-%d", myName, i), "-n", f.Namespace()).Run(); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	fmt.Println("\n======================================[ Describe PerconaXtraDB ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "px", "-n", f.Namespace()).Run(); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("\n======================================[ Percona Server Log ]===================================================")
+	for i := 0; i < pxReplicas; i++ {
+		if err := sh.Command("/usr/bin/kubectl", "logs", fmt.Sprintf("%s-%d", pxName, i), "-n", f.Namespace()).Run(); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	fmt.Println("\n======================================[ Describe Nodes ]===================================================")
+	if err := sh.Command("/usr/bin/kubectl", "describe", "nodes").Run(); err != nil {
+		fmt.Println(err)
 	}
 }

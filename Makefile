@@ -338,6 +338,8 @@ else
 	IMAGE_PULL_SECRETS = --set imagePullSecrets[0]=$(REGISTRY_SECRET)
 endif
 
+MYSQL_TAG ?= v0.6.0-rc.0
+
 .PHONY: mysql-install
 mysql-install:
 	@cd ../installer; \
@@ -345,12 +347,14 @@ mysql-install:
 		--namespace=kube-system \
 		--set kubedb.registry=$(REGISTRY) \
 		--set kubedb.repository=my-operator \
-		--set kubedb.tag=v0.6.0-rc.0 \
+		--set kubedb.tag=$(MYSQL_TAG) \
 		--set apiserver.enableMutatingWebhook=false \
 		--set apiserver.enableValidatingWebhook=false \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
-	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=5m; \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
+	until kubectl get crds -l app=kubedb -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
+	kubectl wait --for=condition=Established crds -l app=kubedb --timeout=5m; \
 	helm install kubedb-mysql-catalog charts/kubedb-catalog \
 		--namespace=kube-system \
 		--set catalog.elasticsearch=false \
@@ -364,6 +368,48 @@ mysql-install:
 		--set catalog.proxysql=false \
 		--set catalog.redis=false
 
+.PHONY: mysql-uninstall
+mysql-uninstall:
+	@cd ../installer; \
+	helm uninstall kubedb-mysql-catalog --namespace=kube-system || true; \
+	helm uninstall kubedb-mysql --namespace=kube-system || true
+
+PERCONA_XTRADB_TAG ?= v0.6.0-rc.0
+
+.PHONY: percona-xtradb-install
+percona-xtradb-install:
+	@cd ../installer; \
+	helm install kubedb-percona-xtradb charts/kubedb \
+		--namespace=kube-system \
+		--set kubedb.registry=$(REGISTRY) \
+		--set kubedb.repository=percona-xtradb-operator \
+		--set kubedb.tag=$(PERCONA_XTRADB_TAG) \
+		--set apiserver.enableMutatingWebhook=false \
+		--set apiserver.enableValidatingWebhook=false \
+		--set imagePullPolicy=Always \
+		$(IMAGE_PULL_SECRETS); \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
+	until kubectl get crds -l app=kubedb -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
+	kubectl wait --for=condition=Established crds -l app=kubedb --timeout=5m; \
+	helm install kubedb-percona-xtradb-catalog charts/kubedb-catalog \
+		--namespace=kube-system \
+		--set catalog.elasticsearch=false \
+		--set catalog.etcd=false \
+		--set catalog.memcached=false \
+		--set catalog.mongo=false \
+		--set catalog.mysql=false \
+		--set catalog.perconaxtradb=true \
+		--set catalog.pgbouncer=false \
+		--set catalog.postgres=false \
+		--set catalog.proxysql=false \
+		--set catalog.redis=false
+
+.PHONY: percona-xtradb-uninstall
+percona-xtradb-uninstall:
+	@cd ../installer; \
+	helm uninstall kubedb-percona-xtradb-catalog --namespace=kube-system || true; \
+	helm uninstall kubedb-percona-xtradb --namespace=kube-system || true
+
 .PHONY: install
 install:
 	@cd ../installer; \
@@ -374,7 +420,7 @@ install:
 		--set kubedb.tag=$(TAG) \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
-	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=5m; \
+	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
 	kubectl wait --for=condition=Available apiservice -l app=kubedb --timeout=5m; \
 	helm install kubedb-catalog charts/kubedb-catalog \
 		--namespace=kube-system \
@@ -445,8 +491,9 @@ check-license:
 		$(BUILD_IMAGE)                                   \
 		ltag -t "./hack/license" --excludes "vendor contrib third_party libbuild" --check -v
 
+# TODO: uncomment verify target in ci
 .PHONY: ci
-ci: verify check-license lint build unit-tests #cover
+ci: check-license lint build unit-tests #cover # verify
 
 .PHONY: qa
 qa:
