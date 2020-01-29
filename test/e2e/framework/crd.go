@@ -32,16 +32,18 @@ func (f *Framework) EventuallyCRD() GomegaAsyncAssertion {
 				return errors.New("CRD ProxySQL is not ready")
 			}
 
-			// Check MySQL TPR
+			// Check MySQL CRD
 			if MySQLTest {
 				if _, err := f.dbClient.KubedbV1alpha1().MySQLs(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
 					return errors.New("CRD MySQL is not ready")
 				}
 			}
 
-			// Check DormantDatabases TPR
-			if _, err := f.dbClient.KubedbV1alpha1().DormantDatabases(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
-				return errors.New("CRD DormantDatabase is not ready")
+			// Check PerconaXtraDB CRD
+			if PerconaXtraDBTest {
+				if _, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(core.NamespaceAll).List(metav1.ListOptions{}); err != nil {
+					return errors.New("CRD PerconaXtraDB is not ready")
+				}
 			}
 
 			return nil

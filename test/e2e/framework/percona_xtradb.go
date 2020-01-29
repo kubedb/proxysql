@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,6 +70,15 @@ func (f *Framework) GetPerconaXtraDB(meta metav1.ObjectMeta) (*api.PerconaXtraDB
 	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
 }
 
+func (f *Framework) PatchPerconaXtraDB(meta metav1.ObjectMeta, transform func(*api.PerconaXtraDB) *api.PerconaXtraDB) (*api.PerconaXtraDB, error) {
+	px, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	px, _, err = util.PatchPerconaXtraDB(f.dbClient.KubedbV1alpha1(), px, transform)
+	return px, err
+}
+
 func (f *Framework) DeletePerconaXtraDB(meta metav1.ObjectMeta) error {
 	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Delete(meta.Name, &metav1.DeleteOptions{})
 }
@@ -102,4 +112,21 @@ func (f *Framework) CleanPerconaXtraDB() {
 	if err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{}); err != nil {
 		fmt.Printf("error in deletion of PerconaXtraDB. Error: %v", err)
 	}
+}
+
+func (f *Framework) EventuallyPerconaXtraDB(meta metav1.ObjectMeta) GomegaAsyncAssertion {
+	return Eventually(
+		func() bool {
+			_, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+			if err != nil {
+				if kerr.IsNotFound(err) {
+					return false
+				}
+				Expect(err).NotTo(HaveOccurred())
+			}
+			return true
+		},
+		time.Minute*5,
+		time.Second*5,
+	)
 }
