@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"time"
 
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+
 	. "github.com/onsi/gomega"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,22 +43,41 @@ func (f *Framework) EventuallyAppBinding(meta metav1.ObjectMeta) GomegaAsyncAsse
 	)
 }
 
-func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta) error {
-	mysql, err := f.GetMySQL(meta)
-	Expect(err).NotTo(HaveOccurred())
+func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta, parentResourceKind string) error {
+	var (
+		name, namespace, svcName, secretName string
+	)
 
-	appBinding, err := f.appCatalogClient.AppBindings(mysql.Namespace).Get(mysql.Name, metav1.GetOptions{})
+	if parentResourceKind == api.ResourceKindMySQL {
+		mysql, err := f.GetMySQL(meta)
+		Expect(err).NotTo(HaveOccurred())
+
+		name = mysql.Name
+		namespace = mysql.Namespace
+		svcName = mysql.ServiceName()
+		secretName = mysql.Spec.DatabaseSecret.SecretName
+	} else {
+		px, err := f.GetPerconaXtraDB(meta)
+		Expect(err).NotTo(HaveOccurred())
+
+		name = px.Name
+		namespace = px.Namespace
+		svcName = px.ServiceName()
+		secretName = px.Spec.DatabaseSecret.SecretName
+	}
+
+	appBinding, err := f.appCatalogClient.AppBindings(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	if appBinding.Spec.ClientConfig.Service == nil ||
-		appBinding.Spec.ClientConfig.Service.Name != mysql.ServiceName() ||
+		appBinding.Spec.ClientConfig.Service.Name != svcName ||
 		appBinding.Spec.ClientConfig.Service.Port != 3306 {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	if appBinding.Spec.Secret == nil ||
-		appBinding.Spec.Secret.Name != mysql.Spec.DatabaseSecret.SecretName {
+		appBinding.Spec.Secret.Name != secretName {
 		return fmt.Errorf("appbinding %v/%v contains invalid data", appBinding.Namespace, appBinding.Name)
 	}
 	return nil

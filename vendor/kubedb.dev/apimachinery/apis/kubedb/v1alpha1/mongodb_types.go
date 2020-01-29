@@ -87,10 +87,6 @@ type MongoDBSpec struct {
 	// +optional
 	Init *InitSpec `json:"init,omitempty" protobuf:"bytes,11,opt,name=init"`
 
-	// BackupSchedule spec to specify how database backup will be taken
-	// +optional
-	BackupSchedule *BackupScheduleSpec `json:"backupSchedule,omitempty" protobuf:"bytes,12,opt,name=backupSchedule"`
-
 	// Monitor is used monitor database instance
 	// +optional
 	Monitor *mona.AgentSpec `json:"monitor,omitempty" protobuf:"bytes,13,opt,name=monitor"`
@@ -112,13 +108,21 @@ type MongoDBSpec struct {
 	// Template.
 	UpdateStrategy apps.StatefulSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,17,opt,name=updateStrategy"`
 
+	// Indicates that the database is paused and controller will not sync any changes made to this spec.
+	// +optional
+	Paused bool `json:"paused,omitempty" protobuf:"varint,18,opt,name=paused"`
+
+	// Indicates that the database is halted and all offshoot Kubernetes resources except PVCs are deleted.
+	// +optional
+	Halted bool `json:"halted,omitempty" protobuf:"varint,19,opt,name=halted"`
+
+	// TLS contains tls configurations for client and server.
+	// +optional
+	TLS *TLSConfig `json:"tls,omitempty" protobuf:"bytes,20,opt,name=tls"`
+
 	// TerminationPolicy controls the delete operation for database
 	// +optional
-	TerminationPolicy TerminationPolicy `json:"terminationPolicy,omitempty" protobuf:"bytes,18,opt,name=terminationPolicy,casttype=TerminationPolicy"`
-
-	// Indicates that the db is paused.
-	// +optional
-	Paused bool `json:"paused,omitempty" protobuf:"varint,19,opt,name=paused"`
+	TerminationPolicy TerminationPolicy `json:"terminationPolicy,omitempty" protobuf:"bytes,21,opt,name=terminationPolicy,casttype=TerminationPolicy"`
 }
 
 // ClusterAuthMode represents the clusterAuthMode of mongodb clusters ( replicaset or sharding)
@@ -210,7 +214,7 @@ type MongoDBMongosNode struct {
 	MongoDBNode `json:",inline" protobuf:"bytes,5,opt,name=mongoDBNode"`
 
 	// The deployment strategy to use to replace existing pods with new ones.
-	// +optional
+	// Deprecated: Deployment has been Replaced by StatefulSet. MongosNode now uses spec.updateStrategy
 	Strategy apps.DeploymentStrategy `json:"strategy,omitempty" protobuf:"bytes,4,opt,name=strategy"`
 }
 

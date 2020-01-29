@@ -20,7 +20,6 @@ import (
 
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	"kubedb.dev/proxysql/test/e2e/framework"
-	"kubedb.dev/proxysql/test/e2e/matcher"
 
 	"github.com/appscode/go/log"
 	. "github.com/onsi/ginkgo"
@@ -54,11 +53,11 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		f.EventuallyAppBinding(mysql.ObjectMeta).Should(BeTrue())
 
 		By("Check valid AppBinding Specs")
-		err := f.CheckAppBindingSpec(mysql.ObjectMeta)
+		err := f.CheckAppBindingSpec(mysql.ObjectMeta, api.ResourceKindMySQL)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Waiting for database to be ready")
-		f.EventuallyDatabaseReady(mysql.ObjectMeta, proxysqlFlag, dbName, 0).Should(BeTrue())
+		f.EventuallyDatabaseReady(mysql.ObjectMeta, proxysqlFlag, api.ResourceKindMySQL, dbName, 0).Should(BeTrue())
 	}
 
 	var deleteMySQLResource = func() {
@@ -77,6 +76,13 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
+		By("Update mysql to set spec.terminationPolicy = WipeOut")
+		_, err = f.PatchMySQL(my.ObjectMeta, func(in *api.MySQL) *api.MySQL {
+			in.Spec.TerminationPolicy = api.TerminationPolicyWipeOut
+			return in
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Delete mysql")
 		err = f.DeleteMySQL(mysql.ObjectMeta)
 		if err != nil {
@@ -87,24 +93,11 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		if my.Spec.TerminationPolicy == api.TerminationPolicyPause {
-			By("Wait for mysql to be paused")
-			f.EventuallyDormantDatabaseStatus(mysql.ObjectMeta).Should(matcher.HavePaused())
-
-			By("WipeOut mysql")
-			_, err := f.PatchDormantDatabase(mysql.ObjectMeta, func(in *api.DormantDatabase) *api.DormantDatabase {
-				in.Spec.WipeOut = true
-				return in
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Delete Dormant Database")
-			err = f.DeleteDormantDatabase(mysql.ObjectMeta)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		By("Wait for mysql to be deleted")
+		f.EventuallyMySQL(mysql.ObjectMeta).Should(BeFalse())
 
 		By("Wait for mysql resources to be wipedOut")
-		f.EventuallyWipedOutMySQL(mysql.ObjectMeta).Should(Succeed())
+		f.EventuallyWipedOut(mysql.ObjectMeta, api.ResourceKindMySQL).Should(Succeed())
 	}
 
 	var deleteProxySQLResource = func() {
@@ -161,7 +154,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 	var countRows = func(meta metav1.ObjectMeta, podIndex, expectedRowCnt int) {
 		By(fmt.Sprintf("Read row from member '%s-%d'", meta.Name, podIndex))
-		f.EventuallyCountRow(meta, proxysqlFlag, dbNameKubedb, podIndex).Should(Equal(expectedRowCnt))
+		f.EventuallyCountRow(meta, proxysqlFlag, api.ResourceKindMySQL, dbNameKubedb, podIndex).Should(Equal(expectedRowCnt))
 	}
 
 	var insertRows = func(meta metav1.ObjectMeta, podIndex, rowCntToInsert int, expected bool) {
@@ -175,10 +168,10 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 	var create_Database_N_Table = func(meta metav1.ObjectMeta, podIndex int) {
 		By("Create Database")
-		f.EventuallyCreateDatabase(meta, proxysqlFlag, dbName, podIndex).Should(BeTrue())
+		f.EventuallyCreateDatabase(meta, proxysqlFlag, api.ResourceKindMySQL, dbName, podIndex).Should(BeTrue())
 
 		By("Create Table")
-		f.EventuallyCreateTable(meta, proxysqlFlag, dbNameKubedb, podIndex).Should(BeTrue())
+		f.EventuallyCreateTable(meta, proxysqlFlag, api.ResourceKindMySQL, dbNameKubedb, podIndex).Should(BeTrue())
 	}
 
 	var writeToPrimary = func(meta metav1.ObjectMeta, podIndex int) {
@@ -203,6 +196,18 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		writeTo_Primary_N_ReadFrom_EachMember(meta, primaryPodIndex, clusterSize)
 	}
 
+	var CheckProxySQLVersion = func() {
+		if framework.ProxySQLCatalogName != "2.0.4" {
+			Skip("ProxySQL version must be '2.0.4'")
+		}
+	}
+
+	var CheckMySQLVersion = func() {
+		if framework.MySQLCatalogName != "5.7.25" && framework.MySQLCatalogName != "5.7-v2" {
+			Skip("MySQL version must be either '5.7.25' or '5.7-v2'")
+		}
+	}
+
 	BeforeEach(func() {
 		f = root.Invoke()
 		mysql = f.MySQLGroup()
@@ -212,16 +217,24 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		proxysqlFlag = false
 	})
 
+	JustAfterEach(func() {
+		if CurrentGinkgoTestDescription().Failed {
+			f.PrintDebugHelpers(mysql.Name, "", int(*mysql.Spec.Replicas), 0)
+		}
+	})
+
 	Context("ProxySQL", func() {
 		BeforeEach(func() {
 			if !framework.MySQLTest {
-				Skip("For ProxySQL test for MySQL, the value of '--mysql' flag must be 'true' while running e2e-tests command")
-			} else if framework.MySQLCatalogName != "5.7.25" && framework.MySQLCatalogName != "5.7-v2" {
-				Skip("For group replication CheckDBVersionForGroupReplication, MySQL version must be one of '5.7.25' or '5.7-v2'")
+				Skip("Value of '--mysql' flag must be 'true' to test ProxySQL for MySQL")
 			}
+
+			CheckProxySQLVersion()
+			CheckMySQLVersion()
+
 			createAndWaitForRunningMySQL()
 
-			proxysql = f.ProxySQL(mysql.Name)
+			proxysql = f.ProxySQL(api.ResourceKindMySQL, mysql.Name)
 			createAndWaitForRunningProxySQL()
 		})
 

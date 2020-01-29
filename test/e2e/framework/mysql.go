@@ -27,13 +27,13 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	JobPvcStorageSize = "2Gi"
-	DBPvcStorageSize  = "1Gi"
+	DBPvcStorageSize = "1Gi"
 )
 
 func (f *Invocation) MySQL() *api.MySQL {
@@ -88,6 +88,15 @@ func (f *Framework) GetMySQL(meta metav1.ObjectMeta) (*api.MySQL, error) {
 	return f.dbClient.KubedbV1alpha1().MySQLs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
 }
 
+func (f *Framework) PatchMySQL(meta metav1.ObjectMeta, transform func(*api.MySQL) *api.MySQL) (*api.MySQL, error) {
+	mysql, err := f.dbClient.KubedbV1alpha1().MySQLs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	mysql, _, err = util.PatchMySQL(f.dbClient.KubedbV1alpha1(), mysql, transform)
+	return mysql, err
+}
+
 func (f *Framework) DeleteMySQL(meta metav1.ObjectMeta) error {
 	return f.dbClient.KubedbV1alpha1().MySQLs(meta.Namespace).Delete(meta.Name, &metav1.DeleteOptions{})
 }
@@ -121,4 +130,21 @@ func (f *Framework) CleanMySQL() {
 	if err := f.dbClient.KubedbV1alpha1().MySQLs(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{}); err != nil {
 		fmt.Printf("error in deletion of MySQL. Error: %v", err)
 	}
+}
+
+func (f *Framework) EventuallyMySQL(meta metav1.ObjectMeta) GomegaAsyncAssertion {
+	return Eventually(
+		func() bool {
+			_, err := f.dbClient.KubedbV1alpha1().MySQLs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+			if err != nil {
+				if kerr.IsNotFound(err) {
+					return false
+				}
+				Expect(err).NotTo(HaveOccurred())
+			}
+			return true
+		},
+		time.Minute*12,
+		time.Second*5,
+	)
 }

@@ -20,18 +20,18 @@ require (
 	k8s.io/apiserver v0.0.0-20191114103151-9ca1dc586682
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-aggregator v0.0.0-20191114103820-f023614fb9ea
-	kmodules.xyz/client-go v0.0.0-20191219184245-880ab4b0e5db
+	kmodules.xyz/client-go v0.0.0-20200127013029-a6db892785ee
 	kmodules.xyz/custom-resources v0.0.0-20191130062942-f41b54f62419
-	kmodules.xyz/monitoring-agent-api v0.0.0-20191223205013-784042d6a958
-	kmodules.xyz/offshoot-api v0.0.0-20191204032627-ee9a85c51ab3
+	kmodules.xyz/monitoring-agent-api v0.0.0-20200125202117-d3b3e33ce41f
+	kmodules.xyz/offshoot-api v0.0.0-20200103145223-2c4f520520d2
 	kmodules.xyz/webhook-runtime v0.0.0-20191127075323-d4bfdee6974d
-	kubedb.dev/apimachinery v0.13.0-rc.2.0.20191227075549-8ef15652d3ed
-	stash.appscode.dev/stash v0.9.0-rc.2.0.20191220142029-ca6885400de1
+	kubedb.dev/apimachinery v0.13.0-rc.3.0.20200128162220-b5069f30b2fe
+	stash.appscode.dev/stash v0.9.0-rc.4
 )
 
 replace (
 	cloud.google.com/go => cloud.google.com/go v0.38.0
-	git.apache.org/thrift.git => github.com/apache/thrift v0.12.0
+	git.apache.org/thrift.git => github.com/apache/thrift v0.13.0
 	github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v32.5.0+incompatible
 	github.com/Azure/go-ansiterm => github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.0.0+incompatible

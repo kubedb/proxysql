@@ -29,17 +29,15 @@ const (
 	RoleStats         = "stats"
 	DefaultStatsPath  = "/metrics"
 
-	PostgresKey         = ResourceSingularPostgres + "." + GenericKey
-	ElasticsearchKey    = ResourceSingularElasticsearch + "." + GenericKey
-	MySQLKey            = ResourceSingularMySQL + "." + GenericKey
-	PerconaXtraDBKey    = ResourceSingularPerconaXtraDB + "." + GenericKey
-	MongoDBKey          = ResourceSingularMongoDB + "." + GenericKey
-	RedisKey            = ResourceSingularRedis + "." + GenericKey
-	MemcachedKey        = ResourceSingularMemcached + "." + GenericKey
-	EtcdKey             = ResourceSingularEtcd + "." + GenericKey
-	ProxySQLKey         = ResourceSingularProxySQL + "." + GenericKey
-	SnapshotKey         = ResourceSingularSnapshot + "." + GenericKey
-	LabelSnapshotStatus = SnapshotKey + "/status"
+	PostgresKey      = ResourceSingularPostgres + "." + GenericKey
+	ElasticsearchKey = ResourceSingularElasticsearch + "." + GenericKey
+	MySQLKey         = ResourceSingularMySQL + "." + GenericKey
+	PerconaXtraDBKey = ResourceSingularPerconaXtraDB + "." + GenericKey
+	MongoDBKey       = ResourceSingularMongoDB + "." + GenericKey
+	RedisKey         = ResourceSingularRedis + "." + GenericKey
+	MemcachedKey     = ResourceSingularMemcached + "." + GenericKey
+	EtcdKey          = ResourceSingularEtcd + "." + GenericKey
+	ProxySQLKey      = ResourceSingularProxySQL + "." + GenericKey
 
 	AnnotationInitialized = GenericKey + "/initialized"
 	AnnotationJobType     = GenericKey + "/job-type"
@@ -72,7 +70,7 @@ const (
 	// And the maximum group size is 9. So MySQLMaxBaseServerID is the maximum safe value
 	// for BaseServerID calculated as max MySQL server_id value - max Replication Group size.
 	// xref: https://dev.mysql.com/doc/refman/5.7/en/replication-options.html
-	MySQLMaxBaseServerID int64 = 2 ^ 32 - 1 - 9
+	MySQLMaxBaseServerID int64 = ((1 << 32) - 1) - 9
 
 	PerconaXtraDBClusterRecommendedVersion    = "5.7"
 	PerconaXtraDBMaxClusterNameLength         = 32
@@ -98,4 +96,12 @@ const (
 	RedisShardKey   = RedisKey + "/shard"
 	RedisNodePort   = 6379
 	RedisGossipPort = 16379
+
+	PgBouncerServingClientSuffix      = "-serving-client-cert"
+	PgBouncerExporterClientCertSuffix = "-exporter-cert"
+	PgBouncerServingServerSuffix      = "-serving-server-cert"
+	PgBouncerUpstreamServerCA         = "upstream-server-ca.crt"
+
+	LocalHost   = "localhost"
+	LocalHostIP = "127.0.0.1"
 )

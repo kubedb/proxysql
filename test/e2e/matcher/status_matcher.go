@@ -21,24 +21,18 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-func HavePaused() types.GomegaMatcher {
+func HaveHalted() types.GomegaMatcher {
 	return &statusMatcher{
-		expected: api.DormantDatabasePhasePaused,
-	}
-}
-
-func HaveWipedOut() types.GomegaMatcher {
-	return &statusMatcher{
-		expected: api.DormantDatabasePhaseWipedOut,
+		expected: api.DatabasePhaseHalted,
 	}
 }
 
 type statusMatcher struct {
-	expected api.DormantDatabasePhase
+	expected api.DatabasePhase
 }
 
 func (matcher *statusMatcher) Match(actual interface{}) (success bool, err error) {
-	phase := actual.(api.DormantDatabasePhase)
+	phase := actual.(api.DatabasePhase)
 	return phase == matcher.expected, nil
 }
 

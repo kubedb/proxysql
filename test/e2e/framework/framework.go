@@ -28,12 +28,13 @@ import (
 )
 
 var (
-	DockerRegistry      = "kubedbci"
-	SelfHostedOperator  = true
-	MySQLCatalogName    = "5.7-v2"
-	ProxySQLCatalogName = "2.0.4"
+	DockerRegistry           = "kubedbci"
+	MySQLCatalogName         = "5.7.25"
+	PerconaXtraDBCatalogName = "5.7-cluster"
+	ProxySQLCatalogName      = "2.0.4"
 
-	MySQLTest = true
+	MySQLTest         = true
+	PerconaXtraDBTest = true
 )
 
 type Framework struct {
@@ -81,4 +82,8 @@ func (f *Framework) Invoke() *Invocation {
 type Invocation struct {
 	*Framework
 	app string
+}
+
+func (fi *Invocation) KubeClient() kubernetes.Interface {
+	return fi.kubeClient
 }

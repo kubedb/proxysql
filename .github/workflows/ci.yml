@@ -47,11 +47,27 @@ jobs:
         docker login --username ${USERNAME} --password ${DOCKER_TOKEN}
         make push
 
-    - name: Create Kubernetes cluster
+  kubernetes:
+    name: Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster: [v1.12.10, v1.14.6, v1.16.3, v1.17.0]
+        db: [2.0.4]
+    steps:
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Create Kubernetes ${{ matrix.cluster }} cluster
       id: kind
       uses: engineerd/setup-kind@v0.1.0
       with:
+        version: v0.7.0
         config: hack/kubernetes/kind.yaml
+        image: kindest/node:${{ matrix.cluster }}
 
     - name: Prepare cluster for testing
       id: local-path
@@ -60,15 +76,13 @@ jobs:
         USERNAME: 1gtm
         REGISTRY_SECRET: regcred
       run: |
-        export KUBECONFIG="$(kind get kubeconfig-path)"
-        echo
         echo "waiting for nodes to be ready ..."
         kubectl wait --for=condition=Ready nodes --all --timeout=5m
         kubectl get nodes
         echo
         echo "installing local-path provisioner ..."
         kubectl delete storageclass --all
-        kubectl apply -f https://github.com/rancher/local-path-provisioner/raw/v0.0.11/deploy/local-path-storage.yaml
+        kubectl apply -f https://github.com/rancher/local-path-provisioner/raw/v0.0.12/deploy/local-path-storage.yaml
         kubectl wait --for=condition=Ready pods -n local-path-storage --all --timeout=5m
         kubectl apply -f hack/kubernetes/storageclass/standard.yaml
         echo
@@ -87,8 +101,49 @@ jobs:
 
     - name: Install MySQL operator
       run: |
-        export KUBECONFIG="$(kind get kubeconfig-path)"
-        make mysql-install
+        env REGISTRY=alittleprogramming MYSQL_TAG=github-e2e-dbg_linux_amd64 make mysql-install || true
+        kubectl get pods --all-namespaces
+        kubectl describe -n kube-system deploy/kubedb-mysql
+        sleep 60
+        kubectl logs -n kube-system deploy/kubedb-mysql
+        echo "----------------"
+        kubectl get crd
+        cd ../installer
+        kubectl get mysqlversion 5.7.25 || helm install kubedb-mysql-catalog charts/kubedb-catalog \
+                                               --namespace=kube-system \
+                                               --set catalog.elasticsearch=false \
+                                               --set catalog.etcd=false \
+                                               --set catalog.memcached=false \
+                                               --set catalog.mongo=false \
+                                               --set catalog.mysql=true \
+                                               --set catalog.perconaxtradb=false \
+                                               --set catalog.pgbouncer=false \
+                                               --set catalog.postgres=false \
+                                               --set catalog.proxysql=false \
+                                               --set catalog.redis=false
+
+    - name: Install Percona-XtraDB operator
+      run: |
+        env REGISTRY=alittleprogramming PERCONA_XTRADB_TAG=px-restore_linux_amd64 make percona-xtradb-install || true
+        kubectl get pods --all-namespaces
+        kubectl describe -n kube-system deploy/kubedb-percona-xtradb
+        sleep 60
+        kubectl logs -n kube-system deploy/kubedb-percona-xtradb
+        echo "----------------"
+        kubectl get crd
+        cd ../installer
+        kubectl get pxversion 5.7-cluster || helm install kubedb-percona-xtradb-catalog charts/kubedb-catalog \
+                                                 --namespace=kube-system \
+                                                 --set catalog.elasticsearch=false \
+                                                 --set catalog.etcd=false \
+                                                 --set catalog.memcached=false \
+                                                 --set catalog.mongo=false \
+                                                 --set catalog.mysql=false \
+                                                 --set catalog.perconaxtradb=true \
+                                                 --set catalog.pgbouncer=false \
+                                                 --set catalog.postgres=false \
+                                                 --set catalog.proxysql=false \
+                                                 --set catalog.redis=false
 
     - name: Run e2e tests
       env:
@@ -97,7 +152,6 @@ jobs:
         TEST_CREDENTIALS: ${{ secrets.TEST_CREDENTIALS }}
         GOOGLE_SERVICE_ACCOUNT_JSON_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_KEY }}
       run: |
-        export KUBECONFIG="$(kind get kubeconfig-path)"
         echo "preparing test credentials"
         mkdir -p hack/config
         echo -n "$TEST_CREDENTIALS" > hack/config/.env
@@ -105,4 +159,4 @@ jobs:
         echo "GOOGLE_SERVICE_ACCOUNT_JSON_KEY=$(echo $GOOGLE_SERVICE_ACCOUNT_JSON_KEY)" >> hack/config/.env
         make install
         echo
-        make e2e-tests
+        make e2e-tests GINKGO_ARGS="--flakeAttempts=2" TEST_ARGS="--proxysql-catalog=${{ matrix.db }}" || (kubectl describe deployment -n kube-system kubedb; kubectl logs -n kube-system deployment/kubedb; kubectl describe deployment -n kube-system kubedb-mysql; kubectl logs -n kube-system deployment/kubedb-mysql operator; kubectl describe deployment -n kube-system kubedb-percona-xtradb; kubectl logs -n kube-system deployment/kubedb-percona-xtradb operator; exit 1;)
