@@ -67,7 +67,7 @@ TAG              := $(VERSION)_$(OS)_$(ARCH)
 TAG_PROD         := $(TAG)
 TAG_DBG          := $(VERSION)-dbg_$(OS)_$(ARCH)
 
-GO_VERSION       ?= 1.13.5
+GO_VERSION       ?= 1.14.2
 BUILD_IMAGE      ?= appscode/golang-dev:$(GO_VERSION)
 
 OUTBIN = bin/$(OS)_$(ARCH)/$(BIN)
@@ -335,26 +335,26 @@ REGISTRY_SECRET ?=
 ifeq ($(strip $(REGISTRY_SECRET)),)
 	IMAGE_PULL_SECRETS =
 else
-	IMAGE_PULL_SECRETS = --set imagePullSecrets[0]=$(REGISTRY_SECRET)
+	IMAGE_PULL_SECRETS = --set imagePullSecrets[0].name=$(REGISTRY_SECRET)
 endif
 
-MYSQL_TAG ?= v0.6.0-rc.0
+MYSQL_REGISTRY ?= kubedb
+MYSQL_TAG      ?= v0.6.0-rc.0
 
-.PHONY: mysql-install
-mysql-install:
+.PHONY: install-mysql
+install-mysql:
 	@cd ../installer; \
-	helm install kubedb-mysql charts/kubedb \
+	helm install kubedb-mysql charts/kubedb --wait \
 		--namespace=kube-system \
-		--set kubedb.registry=$(REGISTRY) \
-		--set kubedb.repository=my-operator \
-		--set kubedb.tag=$(MYSQL_TAG) \
+		--set operator.registry=$(MYSQL_REGISTRY) \
+		--set operator.repository=my-operator \
+		--set operator.tag=$(MYSQL_TAG) \
 		--set apiserver.enableMutatingWebhook=false \
 		--set apiserver.enableValidatingWebhook=false \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
-	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
-	until kubectl get crds -l app=kubedb -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
-	kubectl wait --for=condition=Established crds -l app=kubedb --timeout=5m; \
+	until kubectl get crds mysqlversions.catalog.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
+	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
 	helm install kubedb-mysql-catalog charts/kubedb-catalog \
 		--namespace=kube-system \
 		--set catalog.elasticsearch=false \
@@ -374,24 +374,24 @@ mysql-uninstall:
 	helm uninstall kubedb-mysql-catalog --namespace=kube-system || true; \
 	helm uninstall kubedb-mysql --namespace=kube-system || true
 
-PERCONA_XTRADB_TAG ?= v0.6.0-rc.0
+PERCONA_XTRADB_REGISTRY ?= kubedb
+PERCONA_XTRADB_TAG      ?= v0.6.0-rc.0
 
-.PHONY: percona-xtradb-install
-percona-xtradb-install:
+.PHONY: install-percona-xtradb
+install-percona-xtradb:
 	@cd ../installer; \
-	helm install kubedb-percona-xtradb charts/kubedb \
+	helm install kubedb-percona-xtradb charts/kubedb --wait \
 		--namespace=kube-system \
-		--set kubedb.registry=$(REGISTRY) \
-		--set kubedb.repository=percona-xtradb-operator \
-		--set kubedb.tag=$(PERCONA_XTRADB_TAG) \
+		--set operator.registry=$(PERCONA_XTRADB_REGISTRY) \
+		--set operator.repository=percona-xtradb-operator \
+		--set operator.tag=$(PERCONA_XTRADB_TAG) \
 		--set apiserver.enableMutatingWebhook=false \
 		--set apiserver.enableValidatingWebhook=false \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
-	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
-	until kubectl get crds -l app=kubedb -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
-	kubectl wait --for=condition=Established crds -l app=kubedb --timeout=5m; \
-	helm install kubedb-percona-xtradb-catalog charts/kubedb-catalog \
+	until kubectl get crds perconaxtradbversions.catalog.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
+	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
+	helm install kubedb-postgres-catalog charts/kubedb-catalog \
 		--namespace=kube-system \
 		--set catalog.elasticsearch=false \
 		--set catalog.etcd=false \
@@ -413,15 +413,18 @@ percona-xtradb-uninstall:
 .PHONY: install
 install:
 	@cd ../installer; \
-	helm install kubedb charts/kubedb \
+	helm install kubedb charts/kubedb --wait \
 		--namespace=kube-system \
-		--set kubedb.registry=$(REGISTRY) \
-		--set kubedb.repository=proxysql-operator \
-		--set kubedb.tag=$(TAG) \
+		--set operator.registry=$(REGISTRY) \
+		--set operator.repository=proxysql-operator \
+		--set operator.tag=$(TAG) \
+		--set enterprise.enabled=true \
+		--set enterprise.tag=b615b1ac_linux_amd64 \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
-	kubectl wait --for=condition=Ready pods -n kube-system -l app=kubedb --timeout=10m; \
-	kubectl wait --for=condition=Available apiservice -l app=kubedb --timeout=5m; \
+	kubectl wait --for=condition=Available apiservice -l 'app.kubernetes.io/name=kubedb,app.kubernetes.io/instance=kubedb' --timeout=5m; \
+	until kubectl get crds perconaxtradbs.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
+	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
 	helm install kubedb-catalog charts/kubedb-catalog \
 		--namespace=kube-system \
 		--set catalog.elasticsearch=false \
@@ -429,10 +432,10 @@ install:
 		--set catalog.memcached=false \
 		--set catalog.mongo=false \
 		--set catalog.mysql=false \
-		--set catalog.perconaxtradb=false \
+		--set catalog.perconaxtradb=true \
 		--set catalog.pgbouncer=false \
 		--set catalog.postgres=false \
-		--set catalog.proxysql=true \
+		--set catalog.proxysql=false \
 		--set catalog.redis=false
 
 .PHONY: uninstall
@@ -443,7 +446,7 @@ uninstall:
 
 .PHONY: purge
 purge: uninstall
-	kubectl delete crds -l app=kubedb
+	kubectl delete crds -l app.kubernetes.io/name=kubedb
 
 .PHONY: dev
 dev: gen fmt push
