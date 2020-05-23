@@ -16,6 +16,7 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -79,6 +80,7 @@ func (f *Framework) EventuallyCheckCluster(
 
 func (f *Framework) RemoverPrimary(meta metav1.ObjectMeta, primaryPodIndex int) error {
 	if _, err := f.kubeClient.CoreV1().Pods(meta.Namespace).Get(
+		context.TODO(),
 		fmt.Sprintf("%s-%d", meta.Name, primaryPodIndex),
 		metav1.GetOptions{},
 	); err != nil {
@@ -86,7 +88,7 @@ func (f *Framework) RemoverPrimary(meta metav1.ObjectMeta, primaryPodIndex int) 
 	}
 
 	return f.kubeClient.CoreV1().Pods(meta.Namespace).Delete(
+		context.TODO(),
 		fmt.Sprintf("%s-%d", meta.Name, primaryPodIndex),
-		&metav1.DeleteOptions{},
-	)
+		metav1.DeleteOptions{})
 }

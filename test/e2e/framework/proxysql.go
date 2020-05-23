@@ -16,6 +16,7 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta_util "kmodules.xyz/client-go/meta"
 )
 
 func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.ProxySQL {
@@ -68,22 +70,22 @@ func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.P
 }
 
 func (f *Framework) CreateProxySQL(obj *api.ProxySQL) error {
-	_, err := f.dbClient.KubedbV1alpha1().ProxySQLs(obj.Namespace).Create(obj)
+	_, err := f.dbClient.KubedbV1alpha1().ProxySQLs(obj.Namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
 	return err
 }
 
 func (f *Framework) GetProxySQL(meta metav1.ObjectMeta) (*api.ProxySQL, error) {
-	return f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+	return f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 }
 
 func (f *Framework) DeleteProxySQL(meta metav1.ObjectMeta) error {
-	return f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Delete(meta.Name, &metav1.DeleteOptions{})
+	return f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Delete(context.TODO(), meta.Name, metav1.DeleteOptions{})
 }
 
 func (f *Framework) EventuallyProxySQLPhase(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	return Eventually(
 		func() api.DatabasePhase {
-			db, err := f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+			db, err := f.dbClient.KubedbV1alpha1().ProxySQLs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
 			return db.Status.Phase
 		},
@@ -93,19 +95,19 @@ func (f *Framework) EventuallyProxySQLPhase(meta metav1.ObjectMeta) GomegaAsyncA
 }
 
 func (f *Framework) CleanProxySQL() {
-	mysqlList, err := f.dbClient.KubedbV1alpha1().ProxySQLs(f.namespace).List(metav1.ListOptions{})
+	mysqlList, err := f.dbClient.KubedbV1alpha1().ProxySQLs(f.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return
 	}
 	for _, e := range mysqlList.Items {
-		if _, _, err := util.PatchProxySQL(f.dbClient.KubedbV1alpha1(), &e, func(in *api.ProxySQL) *api.ProxySQL {
+		if _, _, err := util.PatchProxySQL(context.TODO(), f.dbClient.KubedbV1alpha1(), &e, func(in *api.ProxySQL) *api.ProxySQL {
 			in.ObjectMeta.Finalizers = nil
 			return in
-		}); err != nil {
+		}, metav1.PatchOptions{}); err != nil {
 			fmt.Printf("error Patching MySQL. error: %v", err)
 		}
 	}
-	if err := f.dbClient.KubedbV1alpha1().MySQLs(f.namespace).DeleteCollection(deleteInForeground(), metav1.ListOptions{}); err != nil {
+	if err := f.dbClient.KubedbV1alpha1().MySQLs(f.namespace).DeleteCollection(context.TODO(), meta_util.DeleteInForeground(), metav1.ListOptions{}); err != nil {
 		fmt.Printf("error in deletion of MySQL. Error: %v", err)
 	}
 }

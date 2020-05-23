@@ -16,6 +16,7 @@ limitations under the License.
 package e2e_test
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -190,7 +191,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 	}
 
 	var storeWsClusterStats = func() {
-		pods, err := f.KubeClient().CoreV1().Pods(px.Namespace).List(metav1.ListOptions{
+		pods, err := f.KubeClient().CoreV1().Pods(px.Namespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labels.Set(px.OffshootSelectors()).String(),
 		})
 		Expect(err).NotTo(HaveOccurred())
