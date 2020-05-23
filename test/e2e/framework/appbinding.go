@@ -16,6 +16,7 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 func (f *Framework) EventuallyAppBinding(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			_, err := f.appCatalogClient.AppBindings(meta.Namespace).Get(meta.Name, metav1.GetOptions{})
+			_, err := f.appCatalogClient.AppBindings(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 			if err != nil {
 				if kerr.IsNotFound(err) {
 					return false
@@ -66,7 +67,7 @@ func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta, parentResourceKi
 		secretName = px.Spec.DatabaseSecret.SecretName
 	}
 
-	appBinding, err := f.appCatalogClient.AppBindings(namespace).Get(name, metav1.GetOptions{})
+	appBinding, err := f.appCatalogClient.AppBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

@@ -16,6 +16,7 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -37,6 +38,7 @@ func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceKind stri
 
 			// check if pvcs is wiped out
 			pvcList, err := f.kubeClient.CoreV1().PersistentVolumeClaims(meta.Namespace).List(
+				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: labelSelector.String(),
 				},
@@ -50,6 +52,7 @@ func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceKind stri
 
 			// check if secrets are wiped out
 			secretList, err := f.kubeClient.CoreV1().Secrets(meta.Namespace).List(
+				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: labelSelector.String(),
 				},
@@ -63,6 +66,7 @@ func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceKind stri
 
 			// check if appbinds are wiped out
 			appBindingList, err := f.appCatalogClient.AppBindings(meta.Namespace).List(
+				context.TODO(),
 				metav1.ListOptions{
 					LabelSelector: labelSelector.String(),
 				},
