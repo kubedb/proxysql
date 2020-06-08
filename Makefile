@@ -340,7 +340,7 @@ else
 endif
 
 MYSQL_REGISTRY ?= kubedb
-MYSQL_TAG      ?= v0.6.0-rc.1
+MYSQL_TAG      ?= v0.7.0-alpha.0
 
 .PHONY: install-mysql
 install-mysql:
@@ -376,7 +376,7 @@ mysql-uninstall:
 	helm uninstall kubedb-mysql --namespace=$(KUBE_NAMESPACE) || true
 
 PERCONA_XTRADB_REGISTRY ?= kubedb
-PERCONA_XTRADB_TAG      ?= v0.6.0-rc.1
+PERCONA_XTRADB_TAG      ?= v0.1.0-alpha.0
 
 .PHONY: install-percona-xtradb
 install-percona-xtradb:
