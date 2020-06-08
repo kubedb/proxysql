@@ -331,6 +331,7 @@ $(BUILD_DIRS):
 	@mkdir -p $@
 
 REGISTRY_SECRET ?=
+KUBE_NAMESPACE  ?= kube-system
 
 ifeq ($(strip $(REGISTRY_SECRET)),)
 	IMAGE_PULL_SECRETS =
@@ -339,13 +340,13 @@ else
 endif
 
 MYSQL_REGISTRY ?= kubedb
-MYSQL_TAG      ?= v0.6.0-rc.0
+MYSQL_TAG      ?= v0.6.0-rc.1
 
 .PHONY: install-mysql
 install-mysql:
 	@cd ../installer; \
 	helm install kubedb-mysql charts/kubedb --wait \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set operator.registry=$(MYSQL_REGISTRY) \
 		--set operator.repository=my-operator \
 		--set operator.tag=$(MYSQL_TAG) \
@@ -356,7 +357,7 @@ install-mysql:
 	until kubectl get crds mysqlversions.catalog.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
 	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
 	helm install kubedb-mysql-catalog charts/kubedb-catalog \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set catalog.elasticsearch=false \
 		--set catalog.etcd=false \
 		--set catalog.memcached=false \
@@ -371,17 +372,17 @@ install-mysql:
 .PHONY: mysql-uninstall
 mysql-uninstall:
 	@cd ../installer; \
-	helm uninstall kubedb-mysql-catalog --namespace=kube-system || true; \
-	helm uninstall kubedb-mysql --namespace=kube-system || true
+	helm uninstall kubedb-mysql-catalog --namespace=$(KUBE_NAMESPACE) || true; \
+	helm uninstall kubedb-mysql --namespace=$(KUBE_NAMESPACE) || true
 
 PERCONA_XTRADB_REGISTRY ?= kubedb
-PERCONA_XTRADB_TAG      ?= v0.6.0-rc.0
+PERCONA_XTRADB_TAG      ?= v0.6.0-rc.1
 
 .PHONY: install-percona-xtradb
 install-percona-xtradb:
 	@cd ../installer; \
 	helm install kubedb-percona-xtradb charts/kubedb --wait \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set operator.registry=$(PERCONA_XTRADB_REGISTRY) \
 		--set operator.repository=percona-xtradb-operator \
 		--set operator.tag=$(PERCONA_XTRADB_TAG) \
@@ -392,7 +393,7 @@ install-percona-xtradb:
 	until kubectl get crds perconaxtradbversions.catalog.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
 	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
 	helm install kubedb-postgres-catalog charts/kubedb-catalog \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set catalog.elasticsearch=false \
 		--set catalog.etcd=false \
 		--set catalog.memcached=false \
@@ -407,28 +408,26 @@ install-percona-xtradb:
 .PHONY: percona-xtradb-uninstall
 percona-xtradb-uninstall:
 	@cd ../installer; \
-	helm uninstall kubedb-percona-xtradb-catalog --namespace=kube-system || true; \
-	helm uninstall kubedb-percona-xtradb --namespace=kube-system || true
+	helm uninstall kubedb-percona-xtradb-catalog --namespace=$(KUBE_NAMESPACE) || true; \
+	helm uninstall kubedb-percona-xtradb --namespace=$(KUBE_NAMESPACE) || true
 
-ENTERPRISE_TAG ?= v0.1.0-alpha.0
+ENTERPRISE_TAG ?= v0.1.0-alpha.3
 
 .PHONY: install
 install:
 	@cd ../installer; \
 	helm install kubedb charts/kubedb --wait \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set operator.registry=$(REGISTRY) \
 		--set operator.repository=proxysql-operator \
 		--set operator.tag=$(TAG) \
-		--set enterprise.enabled=true \
-		--set enterprise.tag=$(ENTERPRISE_TAG) \
 		--set imagePullPolicy=Always \
 		$(IMAGE_PULL_SECRETS); \
 	kubectl wait --for=condition=Available apiservice -l 'app.kubernetes.io/name=kubedb,app.kubernetes.io/instance=kubedb' --timeout=5m; \
 	until kubectl get crds perconaxtradbs.kubedb.com -o=jsonpath='{.items[0].metadata.name}' &> /dev/null; do sleep 1; done; \
 	kubectl wait --for=condition=Established crds -l app.kubernetes.io/name=kubedb --timeout=5m; \
 	helm install kubedb-catalog charts/kubedb-catalog \
-		--namespace=kube-system \
+		--namespace=$(KUBE_NAMESPACE) \
 		--set catalog.elasticsearch=false \
 		--set catalog.etcd=false \
 		--set catalog.memcached=false \
@@ -438,13 +437,18 @@ install:
 		--set catalog.pgbouncer=false \
 		--set catalog.postgres=false \
 		--set catalog.proxysql=false \
-		--set catalog.redis=false
+		--set catalog.redis=false; \
+	helm install kubedb-enterprise charts/kubedb-enterprise --wait \
+		--namespace=$(KUBE_NAMESPACE) \
+		--set operator.tag=$(ENTERPRISE_TAG) \
+		--set imagePullPolicy=Always \
+		$(IMAGE_PULL_SECRETS)
 
 .PHONY: uninstall
 uninstall:
 	@cd ../installer; \
-	helm uninstall kubedb-catalog --namespace=kube-system || true; \
-	helm uninstall kubedb --namespace=kube-system || true
+	helm uninstall kubedb-catalog --namespace=$(KUBE_NAMESPACE) || true; \
+	helm uninstall kubedb --namespace=$(KUBE_NAMESPACE) || true
 
 .PHONY: purge
 purge: uninstall
