@@ -93,6 +93,8 @@ DOCKER_REPO_ROOT := /go/src/$(GO_PKG)/$(REPO)
 # If you want to build AND push all containers, see the 'all-push' rule.
 all: fmt build
 
+include Makefile.env
+
 # For the following OS/ARCH expansions, we transform OS/ARCH into OS_ARCH
 # because make pattern rules don't match with embedded '/' characters.
 
@@ -330,7 +332,7 @@ $(BUILD_DIRS):
 	@mkdir -p $@
 
 REGISTRY_SECRET ?=
-KUBE_NAMESPACE  ?= kube-system
+KUBE_NAMESPACE  ?=
 
 ifeq ($(strip $(REGISTRY_SECRET)),)
 	IMAGE_PULL_SECRETS =
@@ -338,8 +340,8 @@ else
 	IMAGE_PULL_SECRETS = --set imagePullSecrets[0].name=$(REGISTRY_SECRET)
 endif
 
-MYSQL_REGISTRY ?= kubedb
-MYSQL_TAG      ?= v0.7.0-alpha.0
+MYSQL_REGISTRY ?=
+MYSQL_TAG      ?=
 
 .PHONY: install-mysql
 install-mysql:
@@ -374,8 +376,8 @@ mysql-uninstall:
 	helm uninstall kubedb-mysql-catalog --namespace=$(KUBE_NAMESPACE) || true; \
 	helm uninstall kubedb-mysql --namespace=$(KUBE_NAMESPACE) || true
 
-PERCONA_XTRADB_REGISTRY ?= kubedb
-PERCONA_XTRADB_TAG      ?= v0.1.0-alpha.0
+PERCONA_XTRADB_REGISTRY ?=
+PERCONA_XTRADB_TAG      ?=
 
 .PHONY: install-percona-xtradb
 install-percona-xtradb:
@@ -410,7 +412,7 @@ percona-xtradb-uninstall:
 	helm uninstall kubedb-percona-xtradb-catalog --namespace=$(KUBE_NAMESPACE) || true; \
 	helm uninstall kubedb-percona-xtradb --namespace=$(KUBE_NAMESPACE) || true
 
-ENTERPRISE_TAG ?= v0.1.0-alpha.3
+ENTERPRISE_TAG ?=
 
 .PHONY: install
 install:
