@@ -412,8 +412,6 @@ percona-xtradb-uninstall:
 	helm uninstall kubedb-percona-xtradb-catalog --namespace=$(KUBE_NAMESPACE) || true; \
 	helm uninstall kubedb-percona-xtradb --namespace=$(KUBE_NAMESPACE) || true
 
-ENTERPRISE_TAG ?=
-
 .PHONY: install
 install:
 	@cd ../installer; \
@@ -438,12 +436,7 @@ install:
 		--set catalog.pgbouncer=false \
 		--set catalog.postgres=false \
 		--set catalog.proxysql=false \
-		--set catalog.redis=false; \
-	helm install kubedb-enterprise charts/kubedb-enterprise --wait \
-		--namespace=$(KUBE_NAMESPACE) \
-		--set operator.tag=$(ENTERPRISE_TAG) \
-		--set imagePullPolicy=Always \
-		$(IMAGE_PULL_SECRETS)
+		--set catalog.redis=false
 
 .PHONY: uninstall
 uninstall:
