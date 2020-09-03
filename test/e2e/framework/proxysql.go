@@ -28,7 +28,6 @@ import (
 	"github.com/appscode/go/crypto/rand"
 	"github.com/appscode/go/types"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	meta_util "kmodules.xyz/client-go/meta"
@@ -62,9 +61,6 @@ func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.P
 					Name:     backendObjName,
 				},
 				Replicas: types.Int32P(api.PerconaXtraDBDefaultClusterSize),
-			},
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			},
 		},
 	}
