@@ -27,6 +27,7 @@ import (
 	"github.com/go-xorm/xorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kmodules.xyz/client-go/tools/portforward"
 )
@@ -83,8 +84,8 @@ func (f *Framework) getMySQLClient(
 			}
 		}
 
-		user, userErr = f.GetSecretCred(secretMeta, api.MySQLUserKey)
-		pass, passErr = f.GetSecretCred(secretMeta, api.MySQLPasswordKey)
+		user, userErr = f.GetSecretCred(secretMeta, core.BasicAuthUsernameKey)
+		pass, passErr = f.GetSecretCred(secretMeta, core.BasicAuthPasswordKey)
 	} else {
 		psql, err := f.GetProxySQL(meta)
 		if err != nil {
@@ -95,8 +96,8 @@ func (f *Framework) getMySQLClient(
 			Namespace: psql.Namespace,
 		}
 
-		user, userErr = f.GetSecretCred(secretMeta, api.ProxySQLUserKey)
-		pass, passErr = f.GetSecretCred(secretMeta, api.ProxySQLPasswordKey)
+		user, userErr = f.GetSecretCred(secretMeta, core.BasicAuthUsernameKey)
+		pass, passErr = f.GetSecretCred(secretMeta, core.BasicAuthPasswordKey)
 	}
 	if userErr != nil {
 		return nil, userErr

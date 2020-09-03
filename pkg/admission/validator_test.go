@@ -29,7 +29,6 @@ import (
 
 	"github.com/appscode/go/types"
 	admission "k8s.io/api/admission/v1beta1"
-	apps "k8s.io/api/apps/v1"
 	authenticationV1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	storageV1beta1 "k8s.io/api/storage/v1beta1"
@@ -373,9 +372,6 @@ func sampleProxySQL() api.ProxySQL {
 					APIGroup: types.StringP(kubedb.GroupName),
 					Name:     "bar",
 				},
-			},
-			UpdateStrategy: apps.StatefulSetUpdateStrategy{
-				Type: apps.RollingUpdateStatefulSetStrategyType,
 			},
 		},
 	}

@@ -27,7 +27,6 @@ import (
 	"github.com/appscode/go/crypto/rand"
 	"github.com/appscode/go/types"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -58,9 +57,6 @@ func (f *Invocation) MySQL() *api.MySQL {
 					},
 				},
 				StorageClassName: types.StringP(f.StorageClass),
-			},
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.RollingUpdateStatefulSetStrategyType,
 			},
 			TerminationPolicy: api.TerminationPolicyWipeOut,
 		},
