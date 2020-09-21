@@ -15,7 +15,7 @@
 SHELL=/bin/bash -o pipefail
 
 PRODUCT_OWNER_NAME := appscode
-PRODUCT_NAME       := kubedb-community
+PRODUCT_NAME       := kubedb-enterprise
 ENFORCE_LICENSE    ?=
 
 GO_PKG   := kubedb.dev
