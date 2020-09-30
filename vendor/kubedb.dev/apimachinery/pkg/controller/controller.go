@@ -19,7 +19,6 @@ package controller
 import (
 	"time"
 
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 	kubedbinformers "kubedb.dev/apimachinery/client/informers/externalversions"
 
@@ -27,14 +26,13 @@ import (
 	cmInformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
 	crd_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	externalInformers "k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	core_util "kmodules.xyz/client-go/core/v1"
 	"kmodules.xyz/client-go/tools/queue"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
@@ -58,6 +56,8 @@ type Controller struct {
 	AppCatalogClient appcat_cs.Interface
 	// Cluster topology when the operator started
 	ClusterTopology *core_util.Topology
+	// Event Recorder
+	Recorder record.EventRecorder
 }
 
 type Config struct {
@@ -104,10 +104,4 @@ type StashInitializer struct {
 	RBQueue    *queue.Worker
 	RBInformer cache.SharedIndexInformer
 	RBLister   lister.RestoreBatchLister
-}
-
-type DBHelper interface {
-	GetDatabase(metav1.ObjectMeta) (runtime.Object, error)
-	SetDatabaseStatus(metav1.ObjectMeta, api.DatabasePhase, string) error
-	UpsertDatabaseAnnotation(metav1.ObjectMeta, map[string]string) error
 }
