@@ -17,7 +17,7 @@ limitations under the License.
 package matcher
 
 import (
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
 
 	"github.com/onsi/gomega/types"
 )

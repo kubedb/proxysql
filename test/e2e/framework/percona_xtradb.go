@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
-	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha1/util"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
+	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha2/util"
 
 	"github.com/appscode/go/crypto/rand"
 	"github.com/appscode/go/types"
@@ -61,33 +61,33 @@ func (f *Invocation) PerconaXtraDB() *api.PerconaXtraDB {
 }
 
 func (f *Framework) CreatePerconaXtraDB(obj *api.PerconaXtraDB) error {
-	_, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(obj.Namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	_, err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(obj.Namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
 	return err
 }
 
 func (f *Framework) GetPerconaXtraDB(meta metav1.ObjectMeta) (*api.PerconaXtraDB, error) {
-	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
+	return f.dbClient.KubedbV1alpha2().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 }
 
 func (f *Framework) PatchPerconaXtraDB(meta metav1.ObjectMeta, transform func(*api.PerconaXtraDB) *api.PerconaXtraDB) (*api.PerconaXtraDB, error) {
-	px, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
+	px, err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	px, _, err = util.PatchPerconaXtraDB(context.TODO(), f.dbClient.KubedbV1alpha1(), px, transform, metav1.PatchOptions{})
+	px, _, err = util.PatchPerconaXtraDB(context.TODO(), f.dbClient.KubedbV1alpha2(), px, transform, metav1.PatchOptions{})
 	return px, err
 }
 
 func (f *Framework) DeletePerconaXtraDB(meta metav1.ObjectMeta) error {
-	return f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Delete(context.TODO(), meta.Name, metav1.DeleteOptions{})
+	return f.dbClient.KubedbV1alpha2().PerconaXtraDBs(meta.Namespace).Delete(context.TODO(), meta.Name, metav1.DeleteOptions{})
 }
 
 func (f *Framework) EventuallyPerconaXtraDBRunning(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			px, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
+			px, err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
-			return px.Status.Phase == api.DatabasePhaseRunning
+			return px.Status.Phase == api.DatabasePhaseReady
 		},
 		time.Minute*5,
 		time.Second*5,
@@ -95,12 +95,12 @@ func (f *Framework) EventuallyPerconaXtraDBRunning(meta metav1.ObjectMeta) Gomeg
 }
 
 func (f *Framework) CleanPerconaXtraDB() {
-	pxList, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(f.namespace).List(context.TODO(), metav1.ListOptions{})
+	pxList, err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(f.namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return
 	}
 	for _, px := range pxList.Items {
-		if _, _, err := util.PatchPerconaXtraDB(context.TODO(), f.dbClient.KubedbV1alpha1(), &px, func(in *api.PerconaXtraDB) *api.PerconaXtraDB {
+		if _, _, err := util.PatchPerconaXtraDB(context.TODO(), f.dbClient.KubedbV1alpha2(), &px, func(in *api.PerconaXtraDB) *api.PerconaXtraDB {
 			in.ObjectMeta.Finalizers = nil
 			in.Spec.TerminationPolicy = api.TerminationPolicyWipeOut
 			return in
@@ -108,7 +108,7 @@ func (f *Framework) CleanPerconaXtraDB() {
 			fmt.Printf("error Patching PerconaXtraDB. error: %v", err)
 		}
 	}
-	if err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(f.namespace).DeleteCollection(context.TODO(), meta_util.DeleteInForeground(), metav1.ListOptions{}); err != nil {
+	if err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(f.namespace).DeleteCollection(context.TODO(), meta_util.DeleteInForeground(), metav1.ListOptions{}); err != nil {
 		fmt.Printf("error in deletion of PerconaXtraDB. Error: %v", err)
 	}
 }
@@ -116,7 +116,7 @@ func (f *Framework) CleanPerconaXtraDB() {
 func (f *Framework) EventuallyPerconaXtraDB(meta metav1.ObjectMeta) GomegaAsyncAssertion {
 	return Eventually(
 		func() bool {
-			_, err := f.dbClient.KubedbV1alpha1().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
+			_, err := f.dbClient.KubedbV1alpha2().PerconaXtraDBs(meta.Namespace).Get(context.TODO(), meta.Name, metav1.GetOptions{})
 			if err != nil {
 				if kerr.IsNotFound(err) {
 					return false
