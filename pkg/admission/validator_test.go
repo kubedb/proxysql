@@ -23,7 +23,7 @@ import (
 
 	catalog "kubedb.dev/apimachinery/apis/catalog/v1alpha1"
 	"kubedb.dev/apimachinery/apis/kubedb"
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
 	extFake "kubedb.dev/apimachinery/client/clientset/versioned/fake"
 	"kubedb.dev/apimachinery/client/clientset/versioned/scheme"
 
@@ -113,7 +113,7 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 			req.OldObject.Raw = oldObjJS
 
 			if c.heatUp {
-				if _, err := validator.extClient.KubedbV1alpha1().ProxySQLs(c.namespace).Create(context.TODO(), &c.object, metav1.CreateOptions{}); err != nil && !kerr.IsAlreadyExists(err) {
+				if _, err := validator.extClient.KubedbV1alpha2().ProxySQLs(c.namespace).Create(context.TODO(), &c.object, metav1.CreateOptions{}); err != nil && !kerr.IsAlreadyExists(err) {
 					t.Errorf(err.Error())
 				}
 			}
@@ -488,7 +488,7 @@ func editNonExistingSecret(old api.ProxySQL) api.ProxySQL {
 
 func editStatus(old api.ProxySQL) api.ProxySQL {
 	old.Status = api.ProxySQLStatus{
-		Phase: api.DatabasePhaseCreating,
+		Phase: api.DatabasePhaseProvisioning,
 	}
 	return old
 }

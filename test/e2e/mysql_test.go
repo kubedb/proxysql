@@ -19,7 +19,7 @@ package e2e_test
 import (
 	"fmt"
 
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha1"
+	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
 	"kubedb.dev/proxysql/test/e2e/framework"
 
 	"github.com/appscode/go/log"
@@ -150,7 +150,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Wait for Running ProxySQL")
-		f.EventuallyProxySQLPhase(proxysql.ObjectMeta).Should(Equal(api.DatabasePhaseRunning))
+		f.EventuallyProxySQLPhase(proxysql.ObjectMeta).Should(Equal(api.DatabasePhaseReady))
 	}
 
 	var countRows = func(meta metav1.ObjectMeta, podIndex, expectedRowCnt int) {

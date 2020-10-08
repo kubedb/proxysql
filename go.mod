@@ -3,8 +3,8 @@ module kubedb.dev/proxysql
 go 1.12
 
 require (
-	github.com/appscode/go v0.0.0-20200928211031-cc0c23082d91
-	github.com/codeskyblue/go-sh v0.0.0-20190412065543-76bd3d59ff27
+	github.com/appscode/go v0.0.0-20201006035845-a0302ac8e3d3
+	github.com/codeskyblue/go-sh v0.0.0-20200712050446-30169cf553fe
 	github.com/fatih/structs v1.1.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-xorm/xorm v0.7.9
@@ -16,7 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	go.bytebuilders.dev/license-verifier v0.3.0
 	go.bytebuilders.dev/license-verifier/kubernetes v0.3.0
-	gomodules.xyz/password-generator v0.2.3
+	gomodules.xyz/password-generator v0.2.4
 	k8s.io/api v0.18.9
 	k8s.io/apiextensions-apiserver v0.18.9
 	k8s.io/apimachinery v0.18.9
@@ -25,10 +25,10 @@ require (
 	k8s.io/kube-aggregator v0.18.9
 	kmodules.xyz/client-go v0.0.0-20201007024140-3223988adf40
 	kmodules.xyz/custom-resources v0.0.0-20200922210108-70f2815a43bb
-	kmodules.xyz/monitoring-agent-api v0.0.0-20200922204510-b8b5610e5385
+	kmodules.xyz/monitoring-agent-api v0.0.0-20201007104803-408a1ff2de8d
 	kmodules.xyz/offshoot-api v0.0.0-20200922211229-36acc531abab
 	kmodules.xyz/webhook-runtime v0.0.0-20200922211931-8337935590de
-	kubedb.dev/apimachinery v0.14.0-beta.3.0.20200929172147-60ada14c6d75
+	kubedb.dev/apimachinery v0.14.0-beta.3.0.20201007234719-34bf142ede67
 	stash.appscode.dev/apimachinery v0.11.2
 )
 
