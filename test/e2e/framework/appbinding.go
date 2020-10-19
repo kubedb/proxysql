@@ -57,7 +57,7 @@ func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta, parentResourceKi
 		name = mysql.Name
 		namespace = mysql.Namespace
 		svcName = mysql.ServiceName()
-		secretName = mysql.Spec.DatabaseSecret.SecretName
+		secretName = mysql.Spec.AuthSecret.Name
 	} else {
 		px, err := f.GetPerconaXtraDB(meta)
 		Expect(err).NotTo(HaveOccurred())
@@ -65,7 +65,7 @@ func (f *Framework) CheckAppBindingSpec(meta metav1.ObjectMeta, parentResourceKi
 		name = px.Name
 		namespace = px.Namespace
 		svcName = px.ServiceName()
-		secretName = px.Spec.DatabaseSecret.SecretName
+		secretName = px.Spec.AuthSecret.Name
 	}
 
 	appBinding, err := f.appCatalogClient.AppBindings(namespace).Get(context.TODO(), name, metav1.GetOptions{})

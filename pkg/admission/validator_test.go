@@ -30,7 +30,7 @@ import (
 	"github.com/appscode/go/types"
 	admission "k8s.io/api/admission/v1beta1"
 	authenticationV1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/api/core/v1"
 	storageV1beta1 "k8s.io/api/storage/v1beta1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,7 +80,7 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 				},
 			)
 			validator.client = fake.NewSimpleClientset(
-				&corev1.Secret{
+				&core.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo-auth",
 						Namespace: "default",
@@ -299,7 +299,7 @@ var cases = []struct {
 		false,
 		false,
 	},
-	{"Edit ProxySQL .spec.ProxySQLSecret with Existing Secret",
+	{"Edit ProxySQL .spec.AuthSecret with Existing Secret",
 		requestKind,
 		"foo",
 		"default",
@@ -368,7 +368,7 @@ func sampleProxySQL() api.ProxySQL {
 			Version:  "2.0.4",
 			Replicas: types.Int32P(1),
 			Backend: &api.ProxySQLBackendSpec{
-				Ref: &corev1.TypedLocalObjectReference{
+				Ref: &core.TypedLocalObjectReference{
 					APIGroup: types.StringP(kubedb.GroupName),
 					Name:     "bar",
 				},
@@ -473,15 +473,15 @@ func proxysqlWithUnavailableMySQL() api.ProxySQL {
 }
 
 func editExistingSecret(old api.ProxySQL) api.ProxySQL {
-	old.Spec.ProxySQLSecret = &corev1.SecretVolumeSource{
-		SecretName: "foo-auth",
+	old.Spec.AuthSecret = &core.LocalObjectReference{
+		Name: "foo-auth",
 	}
 	return old
 }
 
 func editNonExistingSecret(old api.ProxySQL) api.ProxySQL {
-	old.Spec.ProxySQLSecret = &corev1.SecretVolumeSource{
-		SecretName: "foo-auth-fused",
+	old.Spec.AuthSecret = &core.LocalObjectReference{
+		Name: "foo-auth-fused",
 	}
 	return old
 }

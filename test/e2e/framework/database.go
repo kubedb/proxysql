@@ -69,7 +69,7 @@ func (f *Framework) getMySQLClient(
 			}
 
 			secretMeta = metav1.ObjectMeta{
-				Name:      my.Spec.DatabaseSecret.SecretName,
+				Name:      my.Spec.AuthSecret.Name,
 				Namespace: my.Namespace,
 			}
 		} else {
@@ -79,7 +79,7 @@ func (f *Framework) getMySQLClient(
 			}
 
 			secretMeta = metav1.ObjectMeta{
-				Name:      px.Spec.DatabaseSecret.SecretName,
+				Name:      px.Spec.AuthSecret.Name,
 				Namespace: px.Namespace,
 			}
 		}
@@ -92,7 +92,7 @@ func (f *Framework) getMySQLClient(
 			return nil, err
 		}
 		secretMeta := metav1.ObjectMeta{
-			Name:      psql.Spec.ProxySQLSecret.SecretName,
+			Name:      psql.Spec.AuthSecret.Name,
 			Namespace: psql.Namespace,
 		}
 
