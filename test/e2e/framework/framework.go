@@ -19,7 +19,7 @@ package framework
 import (
 	cs "kubedb.dev/apimachinery/client/clientset/versioned"
 
-	"github.com/appscode/go/crypto/rand"
+	"gomodules.xyz/x/crypto/rand"
 	kext_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
