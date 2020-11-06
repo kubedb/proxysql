@@ -24,9 +24,9 @@ import (
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha2/util"
 
-	"github.com/appscode/go/crypto/rand"
-	"github.com/appscode/go/types"
 	. "github.com/onsi/gomega"
+	"gomodules.xyz/pointer"
+	"gomodules.xyz/x/crypto/rand"
 	core "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -56,7 +56,7 @@ func (f *Invocation) MySQL() *api.MySQL {
 						core.ResourceStorage: resource.MustParse(DBPvcStorageSize),
 					},
 				},
-				StorageClassName: types.StringP(f.StorageClass),
+				StorageClassName: pointer.StringP(f.StorageClass),
 			},
 			TerminationPolicy: api.TerminationPolicyWipeOut,
 		},
@@ -65,13 +65,13 @@ func (f *Invocation) MySQL() *api.MySQL {
 
 func (f *Invocation) MySQLGroup() *api.MySQL {
 	mysql := f.MySQL()
-	mysql.Spec.Replicas = types.Int32P(api.MySQLDefaultGroupSize)
+	mysql.Spec.Replicas = pointer.Int32P(api.MySQLDefaultGroupSize)
 	clusterMode := api.MySQLClusterModeGroup
 	mysql.Spec.Topology = &api.MySQLClusterTopology{
 		Mode: &clusterMode,
 		Group: &api.MySQLGroupSpec{
 			Name:         "dc002fc3-c412-4d18-b1d4-66c1fbfbbc9b",
-			BaseServerID: types.Int64P(api.MySQLDefaultBaseServerID),
+			BaseServerID: pointer.Int64P(api.MySQLDefaultBaseServerID),
 		},
 	}
 

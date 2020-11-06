@@ -27,7 +27,7 @@ import (
 	extFake "kubedb.dev/apimachinery/client/clientset/versioned/fake"
 	"kubedb.dev/apimachinery/client/clientset/versioned/scheme"
 
-	"github.com/appscode/go/types"
+	"gomodules.xyz/pointer"
 	admission "k8s.io/api/admission/v1beta1"
 	authenticationV1 "k8s.io/api/authentication/v1"
 	core "k8s.io/api/core/v1"
@@ -366,10 +366,10 @@ func sampleProxySQL() api.ProxySQL {
 		},
 		Spec: api.ProxySQLSpec{
 			Version:  "2.0.4",
-			Replicas: types.Int32P(1),
+			Replicas: pointer.Int32P(1),
 			Backend: &api.ProxySQLBackendSpec{
 				Ref: &core.TypedLocalObjectReference{
-					APIGroup: types.StringP(kubedb.GroupName),
+					APIGroup: pointer.StringP(kubedb.GroupName),
 					Name:     "bar",
 				},
 			},
@@ -382,7 +382,7 @@ func sampleProxySQLForPerconaXtraDB() api.ProxySQL {
 	mode := api.LoadBalanceModeGalera
 	proxysql.Spec.Mode = &mode
 	proxysql.Spec.Backend.Ref.Kind = api.ResourceKindPerconaXtraDB
-	proxysql.Spec.Backend.Replicas = types.Int32P(api.PerconaXtraDBDefaultClusterSize)
+	proxysql.Spec.Backend.Replicas = pointer.Int32P(api.PerconaXtraDBDefaultClusterSize)
 
 	return proxysql
 }
@@ -392,7 +392,7 @@ func sampleProxySQLForMySQL() api.ProxySQL {
 	mode := api.LoadBalanceModeGroupReplication
 	proxysql.Spec.Mode = &mode
 	proxysql.Spec.Backend.Ref.Kind = api.ResourceKindMySQL
-	proxysql.Spec.Backend.Replicas = types.Int32P(api.MySQLDefaultGroupSize)
+	proxysql.Spec.Backend.Replicas = pointer.Int32P(api.MySQLDefaultGroupSize)
 
 	return proxysql
 }
@@ -405,7 +405,7 @@ func getAwkwardProxySQL() api.ProxySQL {
 
 func proxysqlWithoutSingleReplica() api.ProxySQL {
 	proxysql := sampleProxySQL()
-	proxysql.Spec.Replicas = types.Int32P(3)
+	proxysql.Spec.Replicas = pointer.Int32P(3)
 	return proxysql
 }
 

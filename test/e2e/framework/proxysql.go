@@ -25,9 +25,9 @@ import (
 	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
 	"kubedb.dev/apimachinery/client/clientset/versioned/typed/kubedb/v1alpha2/util"
 
-	"github.com/appscode/go/crypto/rand"
-	"github.com/appscode/go/types"
 	. "github.com/onsi/gomega"
+	"gomodules.xyz/pointer"
+	"gomodules.xyz/x/crypto/rand"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	meta_util "kmodules.xyz/client-go/meta"
@@ -52,15 +52,15 @@ func (f *Invocation) ProxySQL(backendResourceKind, backendObjName string) *api.P
 		},
 		Spec: api.ProxySQLSpec{
 			Version:  ProxySQLCatalogName,
-			Replicas: types.Int32P(1),
+			Replicas: pointer.Int32P(1),
 			Mode:     &mode,
 			Backend: &api.ProxySQLBackendSpec{
 				Ref: &corev1.TypedLocalObjectReference{
-					APIGroup: types.StringP(kubedb.GroupName),
+					APIGroup: pointer.StringP(kubedb.GroupName),
 					Kind:     backendResourceKind,
 					Name:     backendObjName,
 				},
-				Replicas: types.Int32P(api.PerconaXtraDBDefaultClusterSize),
+				Replicas: pointer.Int32P(api.PerconaXtraDBDefaultClusterSize),
 			},
 		},
 	}
