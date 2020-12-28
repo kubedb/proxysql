@@ -77,7 +77,7 @@ func (c *Controller) createAuthSecret(db *api.ProxySQL) (*core.LocalObjectRefere
 				Namespace: db.Namespace,
 				Labels:    db.OffshootSelectors(),
 			},
-			Type: core.SecretTypeOpaque,
+			Type: core.SecretTypeBasicAuth,
 			StringData: map[string]string{
 				core.BasicAuthUsernameKey: proxysqlUser,
 				core.BasicAuthPasswordKey: passgen.Generate(api.DefaultPasswordLength),
