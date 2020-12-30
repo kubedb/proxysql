@@ -21,19 +21,18 @@ import (
 	"fmt"
 	"time"
 
-	api "kubedb.dev/apimachinery/apis/kubedb/v1alpha2"
-
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	meta_util "kmodules.xyz/client-go/meta"
 )
 
-func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceKind string) GomegaAsyncAssertion {
+func (f *Framework) EventuallyWipedOut(meta metav1.ObjectMeta, resourceFQN string) GomegaAsyncAssertion {
 	return Eventually(
 		func() error {
 			labelMap := map[string]string{
-				api.LabelDatabaseName: meta.Name,
-				api.LabelDatabaseKind: resourceKind,
+				meta_util.NameLabelKey:     resourceFQN,
+				meta_util.InstanceLabelKey: meta.Name,
 			}
 			labelSelector := labels.SelectorFromSet(labelMap)
 

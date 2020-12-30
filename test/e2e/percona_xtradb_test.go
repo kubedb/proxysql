@@ -30,6 +30,7 @@ import (
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	meta_util "kmodules.xyz/client-go/meta"
 )
 
 var _ = Describe("PerconaXtraDB Cluster Tests", func() {
@@ -98,7 +99,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 		f.EventuallyPerconaXtraDB(px.ObjectMeta).Should(BeFalse())
 
 		By("Wait for perconaxtradb resources to be wipedOut")
-		f.EventuallyWipedOut(px.ObjectMeta, api.ResourceKindPerconaXtraDB).Should(Succeed())
+		f.EventuallyWipedOut(px.ObjectMeta, api.PerconaXtraDB{}.ResourceFQN()).Should(Succeed())
 	}
 
 	var deleteProxySQLResource = func() {
@@ -140,7 +141,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 
 		By("Delete left over workloads if exists any")
 		f.CleanWorkloadLeftOvers(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindPerconaXtraDB,
+			meta_util.NameLabelKey: api.PerconaXtraDB{}.ResourceFQN(),
 		})
 	}
 
