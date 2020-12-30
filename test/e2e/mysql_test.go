@@ -27,6 +27,7 @@ import (
 	"gomodules.xyz/x/log"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta_util "kmodules.xyz/client-go/meta"
 )
 
 var _ = Describe("MySQL Group Replication Tests", func() {
@@ -98,7 +99,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 		f.EventuallyMySQL(mysql.ObjectMeta).Should(BeFalse())
 
 		By("Wait for mysql resources to be wipedOut")
-		f.EventuallyWipedOut(mysql.ObjectMeta, api.ResourceKindMySQL).Should(Succeed())
+		f.EventuallyWipedOut(mysql.ObjectMeta, api.MySQL{}.ResourceFQN()).Should(Succeed())
 	}
 
 	var deleteProxySQLResource = func() {
@@ -140,7 +141,7 @@ var _ = Describe("MySQL Group Replication Tests", func() {
 
 		By("Delete left over workloads if exists any")
 		f.CleanWorkloadLeftOvers(map[string]string{
-			api.LabelDatabaseKind: api.ResourceKindMySQL,
+			meta_util.NameLabelKey: api.MySQL{}.ResourceFQN(),
 		})
 	}
 

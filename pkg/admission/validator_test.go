@@ -38,7 +38,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
-	"kmodules.xyz/client-go/meta"
+	meta_util "kmodules.xyz/client-go/meta"
 )
 
 func init() {
@@ -93,11 +93,11 @@ func TestPerconaXtraDBValidator_Admit(t *testing.T) {
 				},
 			)
 
-			objJS, err := meta.MarshalToJson(&c.object, api.SchemeGroupVersion)
+			objJS, err := meta_util.MarshalToJson(&c.object, api.SchemeGroupVersion)
 			if err != nil {
 				panic(err)
 			}
-			oldObjJS, err := meta.MarshalToJson(&c.oldObject, api.SchemeGroupVersion)
+			oldObjJS, err := meta_util.MarshalToJson(&c.oldObject, api.SchemeGroupVersion)
 			if err != nil {
 				panic(err)
 			}
@@ -361,7 +361,7 @@ func sampleProxySQL() api.ProxySQL {
 			Name:      "foo",
 			Namespace: "default",
 			Labels: map[string]string{
-				api.LabelDatabaseKind: api.ResourceKindProxySQL,
+				meta_util.NameLabelKey: api.ProxySQL{}.ResourceFQN(),
 			},
 		},
 		Spec: api.ProxySQLSpec{
