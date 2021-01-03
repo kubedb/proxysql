@@ -90,6 +90,10 @@ func (m MySQL) GoverningServiceName() string {
 	return meta_util.NameWithSuffix(m.ServiceName(), "pods")
 }
 
+func (m MySQL) PrimaryServiceDNS() string {
+	return fmt.Sprintf("%s.%s.svc", m.ServiceName(), m.Namespace)
+}
+
 func (m MySQL) PeerName(idx int) string {
 	return fmt.Sprintf("%s-%d.%s.%s", m.OffshootName(), idx, m.GoverningServiceName(), m.Namespace)
 }
@@ -262,4 +266,25 @@ func (m *MySQL) ReplicasAreReady(lister appslister.StatefulSetLister) (bool, str
 	// Desire number of statefulSets
 	expectedItems := 1
 	return checkReplicas(lister.StatefulSets(m.Namespace), labels.SelectorFromSet(m.OffshootLabels()), expectedItems)
+}
+
+func MySQLRequireSSLArg() string {
+	return "--require-secure-transport=ON"
+}
+
+func MySQLExporterTLSArg() string {
+	return "--config.my-cnf=/etc/mysql/certs/exporter.cnf"
+}
+
+func (m *MySQL) MySQLTLSArgs() []string {
+	tlsArgs := []string{
+		"--ssl-capath=/etc/mysql/certs",
+		"--ssl-ca=/etc/mysql/certs/ca.crt",
+		"--ssl-cert=/etc/mysql/certs/server.crt",
+		"--ssl-key=/etc/mysql/certs/server.key",
+	}
+	if m.Spec.RequireSSL {
+		tlsArgs = append(tlsArgs, MySQLRequireSSLArg())
+	}
+	return tlsArgs
 }

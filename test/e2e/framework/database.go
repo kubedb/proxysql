@@ -39,13 +39,14 @@ type KubedbTable struct {
 
 func (f *Framework) forwardPort(meta metav1.ObjectMeta, clientPodIndex, remotePort int) (*portforward.Tunnel, error) {
 	clientPodName := fmt.Sprintf("%v-%d", meta.Name, clientPodIndex)
-	tunnel := portforward.NewTunnel(
-		f.kubeClient.CoreV1().RESTClient(),
-		f.restConfig,
-		meta.Namespace,
-		clientPodName,
-		remotePort,
-	)
+	tunnel := portforward.NewTunnel(portforward.TunnelOptions{
+		Client:    f.kubeClient.CoreV1().RESTClient(),
+		Config:    f.restConfig,
+		Resource:  "pods",
+		Name:      clientPodName,
+		Namespace: meta.Namespace,
+		Remote:    remotePort,
+	})
 
 	if err := tunnel.ForwardPort(); err != nil {
 		return nil, err
