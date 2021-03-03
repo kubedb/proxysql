@@ -70,8 +70,7 @@ func (f *Invocation) MySQLGroup() *api.MySQL {
 	mysql.Spec.Topology = &api.MySQLClusterTopology{
 		Mode: &clusterMode,
 		Group: &api.MySQLGroupSpec{
-			Name:         "dc002fc3-c412-4d18-b1d4-66c1fbfbbc9b",
-			BaseServerID: pointer.Int64P(api.MySQLDefaultBaseServerID),
+			Name: "dc002fc3-c412-4d18-b1d4-66c1fbfbbc9b",
 		},
 	}
 
