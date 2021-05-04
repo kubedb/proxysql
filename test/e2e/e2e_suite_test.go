@@ -18,7 +18,6 @@ package e2e_test
 
 import (
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,6 +36,7 @@ import (
 	clientSetScheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/klog/v2"
 	ka "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"kmodules.xyz/client-go/logs"
 	"kmodules.xyz/client-go/tools/clientcmd"
@@ -105,7 +105,7 @@ var _ = BeforeSuite(func() {
 	stashClient := scs.NewForConfigOrDie(config)
 
 	if err != nil {
-		log.Fatalln(err)
+		klog.Fatalln(err)
 	}
 
 	// Framework

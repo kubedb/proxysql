@@ -26,10 +26,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gomodules.xyz/x/log"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog/v2"
 	meta_util "kmodules.xyz/client-go/meta"
 )
 
@@ -68,7 +68,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 
 	var deletePerconaXtraDBResource = func() {
 		if px == nil {
-			log.Infoln("Skipping cleanup. Reason: PerconaXtraDB object is nil")
+			klog.Infoln("Skipping cleanup. Reason: PerconaXtraDB object is nil")
 			return
 		}
 
@@ -104,7 +104,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 
 	var deleteProxySQLResource = func() {
 		if proxysql == nil {
-			log.Infoln("Skipping cleanup. Reason: ProxySQL object is nil")
+			klog.Infoln("Skipping cleanup. Reason: ProxySQL object is nil")
 			return
 		}
 		By("Check if ProxySQL " + proxysql.Name + " exists.")
@@ -120,7 +120,7 @@ var _ = Describe("PerconaXtraDB Cluster Tests", func() {
 		err = f.DeleteProxySQL(proxysql.ObjectMeta)
 		if err != nil {
 			if kerr.IsNotFound(err) {
-				log.Infoln("Skipping rest of the cleanup. Reason: ProxySQL does not exist.")
+				klog.Infoln("Skipping rest of the cleanup. Reason: ProxySQL does not exist.")
 				return
 			}
 			Expect(err).NotTo(HaveOccurred())
