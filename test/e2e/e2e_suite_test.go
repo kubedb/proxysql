@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	"gomodules.xyz/kglog"
 	kext_cs "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -38,7 +39,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
 	ka "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-	"kmodules.xyz/client-go/logs"
 	"kmodules.xyz/client-go/tools/clientcmd"
 	appcat_cs "kmodules.xyz/custom-resources/client/clientset/versioned/typed/appcatalog/v1alpha1"
 	scs "stash.appscode.dev/apimachinery/client/clientset/versioned"
@@ -79,8 +79,8 @@ var (
 )
 
 func TestE2e(t *testing.T) {
-	logs.InitLogs()
-	defer logs.FlushLogs()
+	kglog.InitLogs()
+	defer kglog.FlushLogs()
 	RegisterFailHandler(Fail)
 	SetDefaultEventuallyTimeout(TIMEOUT)
 
